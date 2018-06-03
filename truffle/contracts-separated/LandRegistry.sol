@@ -24,7 +24,7 @@ contract LandRegistry {
         address publicFinance;
     }
 
-    PropertyRegister properties;
+    PropertyRegister public properties;
     LandRegistryInfo public landRegistry;
     AdminOrganizations public adminOrganizations;
 
@@ -86,15 +86,15 @@ contract LandRegistry {
         return properties.list[index];
     }
 
-    // function getPropertiesAtRange(uint indexA, uint indexB) public returns (address[]) {
-    //     require (indexA < indexB && indexA >= 0 && indexB >= 0);
-    //     address[] storage tmp;
+    function getPropertiesAtRange(uint indexA, uint indexB) public view returns (address[]) {
+        require (indexA < indexB && indexA >= 0 && indexB >= 0);
+        address[] tmp;
         
-    //     for (uint i = indexA; i < indexB; i++) {
-    //         tmp.push(properties.list[i]);
-    //     }
-    //     return tmp;
-    // }
+        for (uint i = indexA; i < indexB; i++) {
+            tmp.push(properties.list[i]);
+        }
+        return tmp;
+    }
 
     // function getOwnerProperties(address owner) public view returns (address[]) {
     //     return properties.byOwner[owner];
@@ -117,3 +117,4 @@ contract LandRegistry {
         properties.list.push(address(property));
     }
 }
+

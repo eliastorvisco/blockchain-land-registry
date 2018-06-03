@@ -1,7 +1,7 @@
 pragma solidity ^0.4.17;
 
-import "./Property.sol";
 import "./EuroToken.sol";
+import "./Property.sol";
 
 contract PurchaseContract {
     // Property Info
@@ -11,7 +11,7 @@ contract PurchaseContract {
     event Paid(address from, uint paid);
     event Calificated(address property, bool calification, address oldOwner, address newOwner);
 
-    enum Phases { Join, Writting, Validation, Paying, Signing, Calificating, Finished, Canceled }
+    enum Phases { Join, Writting, Validation, Paying, Signing, Calificating, Finished }
     Phases public phase;
 
     EuroToken public euroToken;
@@ -46,7 +46,7 @@ contract PurchaseContract {
     Registrar public registrar;
 
     function PurchaseContract(address _property, uint _price, address _seller, address _registrar, address _euroToken) public {
-        require(Property(_property).getOwner() == _seller);
+        require(Property(_property).propertyInfo.owner == _seller);
         property = _property;
         price = _price;
         seller.addr = _seller;
@@ -63,14 +63,6 @@ contract PurchaseContract {
         PhaseChanged(uint(phase), uint(newPhase));
         phase = newPhase;
     } 
-
-    /***********************************************
-     *  -> Cancel
-     */
-
-    function cancel() public onlySellerOrBuyer onlyBefore(Phases.Calificating) {
-        changePhase(Phases.Canceled);
-    }
 
     /***********************************************
      *  Phase: Join
@@ -104,7 +96,7 @@ contract PurchaseContract {
         if (keccak256(contractHash) == keccak256(hash)) {
             if (isSeller()) seller.contractValidation = true;
             else if (isBuyer()) buyer.contractValidation = true;
-        }
+        } else {}
 
         if (seller.contractValidation && buyer.contractValidation) {
             changePhase(Phases.Paying);
@@ -179,7 +171,6 @@ contract PurchaseContract {
     modifier onlyNotary() {require(isNotary()); _;}
     modifier onlyRegistrar() {require(isRegistrar()); _;}
     modifier onlyWhen(Phases strictPhase) {require(phase == strictPhase); _;}
-    modifier onlyBefore(Phases beforePhase) {require(phase < beforePhase); _;}
     /***********************************************
     *  Info Getters
     */

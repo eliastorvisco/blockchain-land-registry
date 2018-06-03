@@ -1,7 +1,7 @@
 pragma solidity ^0.4.17;
 
-import "./LandRegistry.sol";
 import "./PurchaseContract.sol";
+import "./LandRegistry.sol";
 
 contract Property {
 
@@ -49,11 +49,6 @@ contract Property {
      *  Property Getters
      */
 
-    function getIDUFIR() public view returns (uint IDUFIR) {return propertyInfo.IDUFIR;}
-    function getCRU() public view returns (uint CRU) {return propertyInfo.CRU;}
-    function getDescription() public view returns (string description) {return propertyInfo.description;}
-    function getOwner() public view returns (address owner) {return propertyInfo.owner;}
-
     function getPropertyInfo() public view returns (uint IDUFIR, uint CRU, string description, address owner) {
         return (
             propertyInfo.IDUFIR,
@@ -62,7 +57,6 @@ contract Property {
             propertyInfo.owner
         );
     }
-    
 
     function getAdministrativeInfo() public view returns (address registry) {
         return (
@@ -85,7 +79,7 @@ contract Property {
         require(transfer.purchaseContract == address(0));
         transfer = TransfershipInfo({
             transferingState: true,
-            purchaseContract: new PurchaseContract(this, price, propertyInfo.owner, LandRegistry(adminInfo.registry).getRegistrar(), euroToken)
+            purchaseContract: PurchaseContract(this, price, propertyInfo.owner, LandRegistry(adminInfo.registry).landRegistry.registrar, euroToken)
         });
     }
 
