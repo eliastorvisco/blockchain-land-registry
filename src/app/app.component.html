@@ -1,9 +1,28 @@
-<div class="hero-body blue">
+<div class="container center hero-body blue">
   <div class="container">
     <h1 class="title is-1">
       Angular6 + Truffle Dapp
     </h1>
   </div>
+
+  
+  <table>
+    <thead>
+      <td>
+        <b>Address</b>
+      </td>
+      <td>
+        <b>Balance</b>
+      </td>
+    </thead>
+    <tbody>
+      <tr *ngFor="let acc of accounts">
+        <td>{{acc.address}}</td>
+        <td>{{acc.balance}}</td>
+      </tr>
+    </tbody>
+  </table>
+
 </div>
 
 <br>

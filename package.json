@@ -23,8 +23,11 @@
     "@angular/platform-browser": "^6.0.3",
     "@angular/platform-browser-dynamic": "^6.0.3",
     "@angular/router": "^6.0.3",
+    "bootstrap": "^4.1.1",
     "core-js": "^2.5.4",
     "rxjs": "^6.0.0",
+    "truffle-contract": "^3.0.5",
+    "web3": "^1.0.0-beta.34",
     "zone.js": "^0.8.26"
   },
   "devDependencies": {
@@ -34,7 +37,7 @@
     "@angular/language-service": "^6.0.3",
     "@types/jasmine": "~2.8.6",
     "@types/jasminewd2": "~2.0.3",
-    "@types/node": "^8.9.5",
+    "@types/node": "^8.10.17",
     "codelyzer": "~4.2.1",
     "electron": "^2.0.2",
     "jasmine-core": "~2.99.1",

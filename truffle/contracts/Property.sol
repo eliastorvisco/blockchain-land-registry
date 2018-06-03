@@ -1,194 +1,102 @@
 pragma solidity ^0.4.17;
 
-contract PropertyMarket {
-
-    event Sale(address property, string description);
-
-    struct PurchaseRequest {
-        address property;
-        bool accepted;
-    }
-
-    mapping (address => PurchaseRequest[]) buyerRequests;
-
-    mapping (address => bool) marketAvailability;
-}
-
-contract LandRegistry {
-    address public registrar;
-
-    address[] properties;
-
-    function LandRegistry() public {
-
-    }
-
-
-    function nameRegistrar(address _registrar) public {
-        //Check ColegioRegistradores has it
-        registrar = _registrar;
-    }
-
-    function registerProperty(uint IDUFIR, uint CRU, string description, address owner) public {
-        properties.push(new Property(IDUFIR, CRU, description, owner, this));
-    }
-}
+import "./PurchaseContract.sol";
+import "./LandRegistry.sol";
 
 contract Property {
 
-    uint IDUFIR;
-    uint CRU;
-    address public registry;
-
-    string description;
-
-    address owner;
-
-    address purchaseContract;
-
-    function Property(uint _IDUFIR, uint _CRU, string _description, address _owner, address _registry) public {
-        IDUFIR = _IDUFIR;
-        CRU = _CRU;
-        description = _description;
-        owner = _owner;
-        registry = _registry;
+    struct PropertyInfo {
+        uint IDUFIR;
+        uint CRU;
+        string description;
+        address owner;
     }
 
-    function createPurchaseContract() onlyOwner public {
+    struct AdministrativeInfo {
+        address registry;
+    }
+
+    struct TransfershipInfo {
+        bool transferingState;
+        address purchaseContract;
+    }
+
+    PropertyInfo public propertyInfo;
+    AdministrativeInfo public adminInfo;
+    TransfershipInfo public transfer;
+
+
+    function Property(uint _IDUFIR, uint _CRU, string _description, address _owner, address _registry) public {
+
+        propertyInfo = PropertyInfo ({
+            IDUFIR: _IDUFIR,
+            CRU: _CRU,
+            description: _description,
+            owner: _owner
+        });
+
+        adminInfo = AdministrativeInfo({
+            registry: _registry
+        });
+
+        transfer = TransfershipInfo({
+            transferingState: false,
+            purchaseContract: 0x0
+        });
+    }
+
+    /***********************************************
+     *  Property Getters
+     */
+
+    function getPropertyInfo() public view returns (uint IDUFIR, uint CRU, string description, address owner) {
+        return (
+            propertyInfo.IDUFIR,
+            propertyInfo.CRU,
+            propertyInfo.description,
+            propertyInfo.owner
+        );
+    }
+
+    function getAdministrativeInfo() public view returns (address registry) {
+        return (
+            adminInfo.registry
+        );
+    }
+    
+    function getTransfershipInfo() public view returns (bool transferingState, address purchaseContract) {
+        return (
+            transfer.transferingState,
+            transfer.purchaseContract
+        );
+    }
+
+    /***********************************************
+     *  Property Logics
+     */
+
+    function createPurchaseContract(uint price, address euroToken) onlyOwner public {
         require(purchaseContract == 0x0);
-        purchaseContract = new PurchaseContract(this, owner);
+        purchaseContract = new PurchaseContract(this, price, owner, LandRegistry(adminInfo.registry).landRegistry.registrar, euroToken);
+        transfer = TransfershipInfo({
+            transferingState: true,
+            purchaseContract: address(purchaseContract)
+        });
     }
 
     function transferOwnership(address from, address to) public {
-        require(msg.sender == purchaseContract);
-        require(from == owner);
+        require(msg.sender == transfer.purchaseContract);
+        require(from == propertyInfo.owner);
 
-        owner = to;
+        propertyInfo.owner = to;
+        transfer = TransfershipInfo({
+            transferingState: false,
+            purchaseContract: 0x0
+        });
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner);
-        _;
-    }
-
-
-
-}
-
-contract PurchaseContract {
-
-    enum ContractPhases { Writting, Signing, RegistrarCalification, Finished }
-    ContractPhases phase;
-
-
-    address public property;
-
-    string contractConditions;
-
-    address public seller;
-    bool public sellerSignature;
-
-    address public buyer;
-    bool public buyerSignature;
-
-    address public notary;
-    bool public notaryCalification;
-
-    address public registrar;
-    bool public registrarCalification;
-    string public registrarCalificationDescription;
-
-    address public sellersBank;
-    string sellersBankConditions;
-    bool public sellersBankAcceptance;
-
-
-    address public buyersBank;
-    string buyersBankCompromise;
-    bool public buyersBankAcceptance;
-
-    
-
-    function PurchaseContract(address _property, address _seller) public {
-        property = _property;
-        seller = _seller;
-        phase = ContractPhases.Writting;
-    }
-
-    function addBuyer(address _buyer)  public {
-        require (buyer != 0x0);
-        buyer = _buyer;
-    }
-
-    function addNotary(address _notary)  public {
-        require (notary != 0x0);
-        notary = _notary;
-    }
-
-    function addRegistrar() private {
-        registrar = LandRegistry((Property(property).registry())).registrar();
-    } 
-
-    function writeConditions(string conditions) onlyNotary public {
-        contractConditions = conditions;
-        phase = ContractPhases.Signing;
-    }
-
-    function sign(bool signature) public {
-        if (msg.sender == buyer) buyerSignature = signature;
-        else if (msg.sender == seller) sellerSignature = signature;
-        else revert();
-    }
-
-    function calificateNotary(bool calification) public onlyNotary {
-        notaryCalification = calification;
-    }
-
-    function calificateRegistrar(bool calification, string description) public onlyRegistrar {
-        registrarCalification = calification;
-        registrarCalificationDescription = description;
-    }
-
-    function setBankAcceptance(bool acceptance) public {
-        if (msg.sender == buyersBank) buyersBankAcceptance = acceptance;
-        else if (msg.sender == sellersBank) sellersBankAcceptance = acceptance;
-        else revert();
-        checkAllSigned();
-    }
-
-    function checkAllSigned() private {
-        if (sellerSignature && buyerSignature && buyersBankAcceptance && sellersBankAcceptance && notaryCalification);
-        phase = ContractPhases.RegistrarCalification;
-        addRegistrar();
-    }
-
-    modifier onlySeller() {
-        require(msg.sender == seller);
-        _;
-    }
-
-    modifier onlyBuyer() {
-        require(msg.sender == buyer);
-        _;
-    }
-
-    modifier onlyNotary() {
-        require(msg.sender == notary);
-        _;
-    }
-
-    modifier onlyRegistrar() {
-        require(msg.sender == registrar);
-        _;
-    }
-
-    modifier onlySellersBank() {
-        require(msg.sender == sellersBank);
-        _;
-    }
-
-    modifier onlyBuyersBank() {
-        require(msg.sender == buyersBank);
+        require(msg.sender == propertyInfo.owner);
         _;
     }
 }
