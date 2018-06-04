@@ -2,6 +2,7 @@ const EuroTokenBanking = artifacts.require('./EuroTokenBanking.sol');
 const EuroToken = artifacts.require('./EuroToken.sol');
 
 contract('EuroToken and EuroTokenBanking', function(accounts) {
+    console.log(accounts);
     let manager = accounts[0];
     let elias = accounts[1];
     let marti = accounts[2];

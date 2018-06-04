@@ -4,8 +4,14 @@ import "./Property.sol";
 
 contract LandRegistry {
 
+    enum EntryCode { Presentation, Inscription }
+
+    event EntrySubmission(uint entryCode, address property, string description, address document);
+    event PropertyRegistered(address property, uint index);
+
     struct PropertyRegister {
         address[] list;
+        mapping (address => bool) registered;
         // mapping (address => address[]) byOwner //Why should we store this. If we want to know the property owner we can do it thorugh Property contract
     }
 
@@ -17,31 +23,19 @@ contract LandRegistry {
         //string registrarPk;
     }
 
-    struct AdminOrganizations {
-        address justiceMinistry;
-        address DGRN;
-        address autonomousCommunity;
-        address publicFinance;
-    }
+
 
     PropertyRegister properties;
     LandRegistryInfo public landRegistry;
-    AdminOrganizations public adminOrganizations;
+   
 
-    function LandRegistry(string _autonomousCommunityName, string _registryName, string _registryDescription, address _justiceMinistry, address _DGRN, address _autonomousCommunity, address _publicFinance) public {
+    function LandRegistry(string _autonomousCommunityName, string _registryName, string _registryDescription) public {
         landRegistry = LandRegistryInfo({
             autonomousCommunity: _autonomousCommunityName,
             name: _registryName,
             description: _registryDescription,
             registrar: 0x0
-        });
-
-        adminOrganizations = AdminOrganizations({
-            justiceMinistry: _justiceMinistry,
-            DGRN: _DGRN,
-            autonomousCommunity: _autonomousCommunity,
-            publicFinance: _publicFinance
-        });
+        });  
     }
 
     /***********************************************
@@ -61,15 +55,6 @@ contract LandRegistry {
         );
     }
 
-    function getAdminOrganizations() public view returns (address justiceMinistry, address DGRN, address autonomousCommunity, address publicFinance) {
-        return (
-            adminOrganizations.justiceMinistry,
-            adminOrganizations.DGRN,
-            adminOrganizations.autonomousCommunity,
-            adminOrganizations.publicFinance
-        );
-    }
-
     /***********************************************
      *  Property Getters
      */
@@ -86,34 +71,26 @@ contract LandRegistry {
         return properties.list[index];
     }
 
-    // function getPropertiesAtRange(uint indexA, uint indexB) public returns (address[]) {
-    //     require (indexA < indexB && indexA >= 0 && indexB >= 0);
-    //     address[] storage tmp;
-        
-    //     for (uint i = indexA; i < indexB; i++) {
-    //         tmp.push(properties.list[i]);
-    //     }
-    //     return tmp;
-    // }
-
-    // function getOwnerProperties(address owner) public view returns (address[]) {
-    //     return properties.byOwner[owner];
-    // }
-
-    // function getOwnerPropertyAt(address owner, uint index) public view returns (address) {
-    //     return properties.byOwner[owner][index];
-    // }
-
     /***********************************************
      *  Land Registry Logics
      */
+
+    function registerEntry(uint entryCode, address property, string description, address document) public onlyRegistrar {
+        emit EntrySubmission(entryCode, property, description, document);
+    }
 
     function nameRegistrar(address _registrar) public {
         landRegistry.registrar = _registrar;
     }
 
-    function registerProperty(uint IDUFIR, uint CRU, string description, address owner) public {
+    function registerProperty(uint IDUFIR, uint CRU, string description, address owner) public onlyRegistrar {
         Property property = new Property(IDUFIR, CRU, description, owner, this); 
-        properties.list.push(address(property));
+        properties.list.push(address(property));  
+        PropertyRegistered(address(property), properties.list.length -1);
+    }
+
+    modifier onlyRegistrar() {
+        require(msg.sender == landRegistry.registrar);
+        _;
     }
 }
