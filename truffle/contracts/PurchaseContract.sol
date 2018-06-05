@@ -60,7 +60,7 @@ contract PurchaseContract {
     */
 
     function changePhase(Phases newPhase) internal {
-        PhaseChanged(uint(phase), uint(newPhase));
+        emit PhaseChanged(uint(phase), uint(newPhase));
         phase = newPhase;
     } 
 

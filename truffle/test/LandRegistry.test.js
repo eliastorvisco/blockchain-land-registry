@@ -10,61 +10,89 @@ contract('LandRegistry', function(accounts) {
     let notRealDocument = accounts[4];
     let propertyOwner = accounts[5];
     let landRegistry;
+    let lRInfo = {
+        name: 'Hospitalet de Llobregat, L\' Nº 02',
+        addressInfo: 'Sevilla, 11-13,2º-2ª - Cornella de Llobregat [08940]',
+        province: 'Barcelona',
+        telephone: '(93)475 26 85',
+        fax: '(93)475 26 86',
+        email: 'hospitalet2registrodelapropiedad.org'
+    }
 
     before('setup landRegistry and events watchers', async function() {
-        landRegistry = await LandRegistry.new('Comunidad Autonoma de Catalunya', 'Hospitalet II', 'Calle Inventada', {from: manager});
+
+        landRegistry = await LandRegistry.new(
+           lRInfo.name,
+           lRInfo.addressInfo,
+           lRInfo.province,
+           lRInfo.telephone,
+           lRInfo.fax,
+           lRInfo.email
+        , {from: manager});
+
     })
 
     it('provides land registry basic info', async function() {
         let info = await landRegistry.getLandRegistryInfo({from: manager});
-        assert.equal(info[0], 'Comunidad Autonoma de Catalunya', 'Error at getting the autonomous community');
-        assert.equal(info[1], 'Hospitalet II', 'Error at getting the registry name');
-        assert.equal(info[2], 'Calle Inventada', 'Error at getting the registry description');
-        assert.equal(info[3], 0x0, 'Registrar should be null');
+        console.log(info);
+        // assert.equal(info[0], 'Comunidad Autonoma de Catalunya', 'Error at getting the autonomous community');
+        // assert.equal(info[1], 'Hospitalet II', 'Error at getting the registry name');
+        // assert.equal(info[2], 'Calle Inventada', 'Error at getting the registry description');
+        // assert.equal(info[3], 0x0, 'Registrar should be null');
     })
 
     it('can be assigned with a registrar', async function() {
-        await landRegistry.nameRegistrar(registrar, {from: manager});
-        assert.equal(registrar, await landRegistry.getRegistrar({from: manager}), 'Couldn\' assign a registrar'); 
+        await landRegistry.setRegistrar(registrar, {from: manager});
+        assert.equal(registrar, await landRegistry.registrar.call({from: manager}), 'Couldn\' assign a registrar'); 
     })
 
-    it('can allow a registrar to emit an entry', async function() {
+    it('can allow a registrar register a presentation entry', async function() {
         let newEntry = {
-            code: 1, 
-            property: notRealProperty,
+            identifier: 34576, 
             description: "Peticion de inscripción de una cancelacion de hipoteca",
             document: notRealDocument
         }
-        let result = await landRegistry.registerEntry(newEntry.code, newEntry.property, newEntry.description, newEntry.document, {from: registrar});
-        assert.equal(result.logs[0].args.description, newEntry.description, 'Something went wrong with registering the entry');
+        let result = await landRegistry.addPresentationEntry(newEntry.identifier, newEntry.description, newEntry.document, {from: registrar});
+        assert.equal(result.logs[0].args.document, newEntry.document, 'Something went wrong with registering the entry');
     })
 
-    it('can register a property', async function() {
+    it('allows the registrar to create a property smart contract', async function() {
         let newProperty = {
             IDUFIR: 123,
             CRU: 456,
             description: 'Casa Margarita de la calle Dolores',
             owner: propertyOwner,
         }
+        let result = await landRegistry.createProperty(
+            newProperty.IDUFIR, 
+            newProperty.CRU, 
+            newProperty.description, 
+            newProperty.owner
+        ,{from: registrar});
 
-        let result = await landRegistry.registerProperty(
-            newProperty.IDUFIR,
-            newProperty.CRU,
-            newProperty.description,
-            newProperty.owner,
-            {from: registrar}
-        );
+        property = await Property.at(result.logs[0].args.property);
 
-        let property = await Property.at(result.logs[0].args.property);
-
-        let propertyInfo = await property.getPropertyInfo({from: propertyOwner});
-
-        assert.equal(newProperty.IDUFIR, propertyInfo[0], 'Wrong IDUFIR');
-        assert.equal(newProperty.CRU, propertyInfo[1], 'Wrong CRU');
-        assert.equal(newProperty.description, propertyInfo[2], 'Wrong description');
-        assert.equal(newProperty.owner, propertyInfo[3], 'Wrong owner');
-
+        assert.equal(propertyOwner, await property.owner.call(), 'Error')
     })
-    
+
+    it('allows the registrar to register a property', async function() {
+        let isRegisteredBefore = await landRegistry.isRegistered.call(property.address, {from: propertyOwner});
+        let newRegistration = {
+            property: property.address,
+            identifier: 3425786,
+            description: 'First Registration of a Property',
+            document: notRealDocument
+        }
+        let registrationInfo = await landRegistry.register(
+            newRegistration.property, 
+            newRegistration.identifier, 
+            newRegistration.description, 
+            newRegistration.document
+        , {from: registrar});
+        let isRegisteredAfter = await landRegistry.isRegistered.call(property.address, {from: propertyOwner});
+        
+        assert.equal(isRegisteredBefore, false, 'It shouldn\'t be registered');
+        assert.equal(isRegisteredAfter, true, 'It should be registered')
+    })
 
 })
