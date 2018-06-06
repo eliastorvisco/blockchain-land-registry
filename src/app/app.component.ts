@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Web3Service } from './web3.service';
 
-import { account } from '../utils/account';
+import { Account } from '../utils/account';
 
 @Component({
   selector: 'app-root',
@@ -11,18 +11,29 @@ import { account } from '../utils/account';
 })
 export class AppComponent implements OnInit {
 
-  title = 'TeletubbieLand';
-  accounts: account[] = []
+  accounts: Account[] = [];
+  seller: Account;
+  buyer: Account;
+  notary: Account;
+  registrar: Account;
 
-  constructor(public router:Router, private web3Service: Web3Service) { }
+
+  constructor(public router:Router) { }
 
   ngOnInit() {
-    this.accounts = this.web3Service.accounts;
+
+    // this.accounts = this.web3Service.accounts;
+    // console.log(this.accounts);
+    // this.seller = null;
+    // console.log(typeof this.accounts[0]);
+    // this.buyer = this.accounts[2];
+    // this.notary = this.accounts[3];
+    // this.registrar = this.accounts[4];
   }
 
-  myFunc() {
+  open(newRoute) {
     console.log("hello!");
-    this.router.navigate(['/home']);
+    this.router.navigate([newRoute]);
   }
 
 }

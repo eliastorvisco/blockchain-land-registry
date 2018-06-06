@@ -1,0 +1,24 @@
+<ul class="nav nav-pills nav-fill">
+    <li class="nav-item">
+      <a class="nav-link" [ngClass]="{'active btn btn-dark': page==0}" (click)="changePage(0)">Active</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [ngClass]="{'active btn btn-dark': page==1}" (click)="changePage(1)">Link</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [ngClass]="{'active btn btn-dark': page==2}" (click)="changePage(2)">Disabled</a>
+    </li>
+  </ul>
+
+
+  <div *ngIf="page==0">
+    <h1>Welcome</h1>
+  </div>
+
+  <div *ngIf="page==1">
+    <h1>To</h1>
+  </div>
+
+  <div *ngIf="page==2">
+    <h1>The League of Legends</h1>
+  </div>

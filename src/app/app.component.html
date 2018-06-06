@@ -1,34 +1,27 @@
-<div class="container center hero-body blue">
-  <div class="container">
-    <h1 class="title is-1">
-      Angular6 + Truffle Dapp
-    </h1>
+<div id="wrapper" class="toggled">
+
+  <!-- Sidebar -->
+    
+  <div id="sidebar-wrapper" >
+      <ul class="sidebar-nav" style="height: 100%">
+          <li id="logoLi" style="padding-top: 40px; padding-bottom: 40px">
+            <img src="https://elevenews.com/wp-content/uploads/2018/02/ETHEREUM-LOGO-2-1.png" style="width: 100px; height: 100px; display:block; margin:auto; background-color: white; border-radius: 50%">
+          </li>
+          <li class="sidebar-brand"><a (click)="open('/home')" style="color: white">Blockchain Land Registry</a></li>
+          <li><a (click)="open('/land-registry')">Land Registry</a></li>
+          <li><a (click)="open('/seller')">Seller</a></li>
+          <li><a (click)="open('/buyer')">Buyer</a></li>
+          <li><a (click)="open('/notary')">Notary</a></li>
+          <li><a (click)="open('/registrar')">Registrar</a></li>
+          
+      </ul>
   </div>
+  <!-- /#sidebar-wrapper -->
 
-  
-  <table>
-    <thead>
-      <td>
-        <b>Address</b>
-      </td>
-      <td>
-        <b>Balance</b>
-      </td>
-    </thead>
-    <tbody>
-      <tr *ngFor="let acc of accounts">
-        <td>{{acc.address}}</td>
-        <td>{{acc.balance}}</td>
-      </tr>
-    </tbody>
-  </table>
-
+  <!-- Page Content -->
+  <div id="page-content-wrapper">
+    <div class="container-fluid">
+      <router-outlet></router-outlet>
+  </div>
+    <!-- /#page-content-wrapper -->
 </div>
-
-<br>
-
-<router-outlet></router-outlet>
-
-<br>
-
-<strong>Hint:</strong> open the browser developer console to view any errors and warnings.

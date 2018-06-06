@@ -1,3 +1,19 @@
-<p>
-  home works!
-</p>
+
+<h1>Accounts Info</h1>
+
+<table class="table">
+    <thead class="thead-dark">
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">Account</th>
+        <th scope="col">Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let acc of accounts; let i = index">
+        <th scope="row">{{i}}</th>
+        <td>{{acc.address}}}</td>
+        <td>{{acc.balance}}</td>
+      </tr>
+    </tbody>
+  </table>
