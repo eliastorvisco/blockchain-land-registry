@@ -1,26 +1,44 @@
+
+
+
+
 <div id="wrapper" class="toggled">
 
   <!-- Sidebar -->
-    
-  <div id="sidebar-wrapper" >
-      <ul class="sidebar-nav" style="height: 100%">
-          <li id="logoLi" style="padding-top: 40px; padding-bottom: 40px">
-            <img src="https://elevenews.com/wp-content/uploads/2018/02/ETHEREUM-LOGO-2-1.png" style="width: 100px; height: 100px; display:block; margin:auto; background-color: white; border-radius: 50%">
-          </li>
-          <li class="sidebar-brand"><a (click)="open('/home')" style="color: white">Blockchain Land Registry</a></li>
-          <li><a (click)="open('/land-registry')">Land Registry</a></li>
-          <li><a (click)="open('/seller')">Seller</a></li>
-          <li><a (click)="open('/buyer')">Buyer</a></li>
-          <li><a (click)="open('/notary')">Notary</a></li>
-          <li><a (click)="open('/registrar')">Registrar</a></li>
-          
-      </ul>
-  </div>
+  
+      <div id="sidebar-wrapper" >
+          <div id="sidebar-filter">
+            <ul class="sidebar-nav">
+              <li id="logoLi">
+                <img src="https://elevenews.com/wp-content/uploads/2018/02/ETHEREUM-LOGO-2-1.png" style="width: 100px; height: 100px; display:block; margin:auto; background-color: white; border-radius: 50%">
+              </li>
+              <li class="sidebar-brand"><a (click)="open('/home')" style="color: white">Blockchain Land Registry</a></li>
+              <li><a (click)="open('/land-registry')">Registro de Propiedades</a></li>
+              <li><a (click)="open('/diary-book')">Libro Diario</a></li>
+              <li><a (click)="open('/inscription-book')">Libro de Inscripciones</a></li>
+              <li><a (click)="open('/incapacitation-book')">Libro de Incapacitaciones</a></li>
+              <li style="border-bottom: 1px solid #ddd !important; padding: 5px 0 5px 0;"></li>
+              <li style="font-size: 15px; display: block; text-decoration: none; color: white;">Usuarios</li>
+              <li><a (click)="selectUser('seller')" [style.text-decoration]="user == 'seller'? 'underline' : none" style="padding-left: 35px">Seller</a></li>
+              <li><a (click)="selectUser('buyer')" [style.text-decoration]="user == 'buyer'? 'underline' : none" style="padding-left: 35px">Buyer</a></li>
+              <li><a (click)="selectUser('notary')" [style.text-decoration]="user == 'notary'? 'underline' : none" style="padding-left: 35px">Notary</a></li>
+              <li><a (click)="selectUser('registrar')" [style.text-decoration]="user == 'registrar'? 'underline' : none" style="padding-left: 35px" >Registrar</a></li> 
+            </ul>
+          </div>
+      </div>
+  
   <!-- /#sidebar-wrapper -->
 
   <!-- Page Content -->
   <div id="page-content-wrapper">
-    <div class="container-fluid">
+    
+        <nav class="navbar navbar-inverse">
+            <ul class="nav navbar-nav">
+              <li class="dropdown"><a>Welcome</a></li>
+            </ul>
+
+        </nav>
+  <div class="container-fluid">
       <router-outlet></router-outlet>
   </div>
     <!-- /#page-content-wrapper -->

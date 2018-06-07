@@ -12,11 +12,14 @@ function createWindow () {
   })
 
 
+
   // win.loadURL(`file://${__dirname}/dist/angular-tfg/index.html`)
   win.loadURL('http://localhost:4200');
 
   //// uncomment below to open the DevTools.
    win.webContents.openDevTools()
+   win.setMenu(null);
+   win.maximize();
 
   // Event when the window is closed.
   win.on('closed', function () {

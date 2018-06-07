@@ -1,28 +1,27 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 
 import { AppComponent } from './app.component';
 import { HomeComponent } from './home/home.component';
 import { AppRoutingModule } from './app-routing.module';
 import { LandRegistryComponent } from './land-registry/land-registry.component';
-import { RegistrarComponent } from './registrar/registrar.component';
-import { NotaryComponent } from './notary/notary.component';
-import { SellerComponent } from './seller/seller.component';
-import { BuyerComponent } from './buyer/buyer.component';
+import { PropertyCreationComponent } from './property-creation/property-creation.component';
+
+
+
 
 @NgModule({
   declarations: [
     AppComponent,
     HomeComponent,
     LandRegistryComponent,
-    RegistrarComponent,
-    NotaryComponent,
-    SellerComponent,
-    BuyerComponent,
+    PropertyCreationComponent
   ],
   imports: [
     BrowserModule,
-    AppRoutingModule
+    AppRoutingModule,
+    FormsModule
   ],
   providers: [],
   bootstrap: [AppComponent]

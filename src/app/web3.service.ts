@@ -1,6 +1,8 @@
 import { Injectable, OnInit } from '@angular/core';
 import { Account } from '../utils/account';
 import { User } from '../utils/User';
+import { Property } from '../utils/Property';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 const Web3 = require('web3');
 const contract = require('truffle-contract');
@@ -8,12 +10,18 @@ const contract = require('truffle-contract');
 const landRegistryArtifacts = require('../../truffle/build/contracts/LandRegistry.json');
 const euroTokenBankingArtifacts = require('../../truffle/build/contracts/EuroTokenBanking.json');
 const euroTokenArtifacts = require('../../truffle/build/contracts/EuroToken.json');
+const propertyArtifacts = require('../../truffle/build/contracts/Property.json');
 
 @Injectable({
   providedIn: 'root'
 })
 
 export class Web3Service implements OnInit {
+
+  LandRegistry = contract(landRegistryArtifacts);
+  EuroTokenBanking = contract(euroTokenBankingArtifacts);
+  EuroToken = contract(euroTokenArtifacts);
+  PropertyContract = contract(propertyArtifacts);
 
   web3: any;
   accounts: Account[] = [];
@@ -24,44 +32,37 @@ export class Web3Service implements OnInit {
   notary: User;
   registrar: User;
 
-  LandRegistry = contract(landRegistryArtifacts);
-  EuroTokenBanking = contract(euroTokenBankingArtifacts);
-  EuroToken = contract(euroTokenArtifacts);
+  selectedUser: User;
 
+  // Contract Instances
   landRegistry: any;
   euroTokenBanking: any;
   euroToken: any;
 
+  properties: Property[] = [];
+
   constructor() {
-    this.initializeWeb3();
-    this.getAccounts();
-    //this.initializeAccounts();
-    
-    //this.initializeContracts();
+    this.setWeb3();
+    this.setProviders();
+    this.setAccounts();
+
   }
 
   ngOnInit() {
     
   }
 
-  async getAccounts() {
-    const res =  await this.web3.eth.getAccounts();
-    for (let acc of res) {
-      let balance = await this.web3.eth.getBalance(acc);
-      let newAccount = new Account(acc, this.web3.utils.fromWei(balance.toString()));
-      console.log('New account: ', newAccount.address);
-      this.updateAccounts(newAccount);
-    }
-    this.initializeUsers();
-  }
+  /***************************************
+   * Initialization Methods
+   */
 
-  initializeWeb3() {
+  
+  setWeb3() {
     if (typeof this.web3 !== 'undefined') {
       this.web3 = new Web3(this.web3.currentProvider);
     } else {
       this.web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:7545'));
-    }
-    this.setProviders();
+    }  
   }
 
   setProviders() {
@@ -81,51 +82,34 @@ export class Web3Service implements OnInit {
       gas: 6721975,
       gasPrice: 20000000000
     });
-  }
-
-  initializeAccounts() {
-    
-    //console.log(this.web3);
-
-    this.web3.eth.getAccounts((err, res) => {
-      //console.log('Hello?');
-      if (err) {
-        console.log('There was an error fetching your accounts.');
-        return;
-      }
-
-      if (res.length === 0) {
-        console.log('Could\'t get any accounts! Make sure your Ethereum client is configured correctly.');
-        return;
-      }
-
-      for (let acc of res) {
-        this.web3.eth.getBalance(acc, (err, val) => {
-          if (err) {
-            alert('There was an error fetching balance of account ' + acc + ': ' + err);
-            return;
-          }
-          //console.log("Account: ", acc);
-          let newAccount = new Account(acc, this.web3.utils.fromWei(val.toString()));
-          console.log('New account: ', newAccount.address);
-          this.updateAccounts(newAccount);
-        });
-      }
+    this.PropertyContract.setProvider(this.web3.currentProvider);
+    this.PropertyContract.defaults({
+      gas: 6721975,
+      gasPrice: 20000000000
     });
   }
 
-  initializeUsers() {
+  async setAccounts() {
+    const res =  await this.web3.eth.getAccounts();
+    for (let acc of res) {
+      let balance = await this.web3.eth.getBalance(acc);
+      let newAccount = new Account(acc, this.web3.utils.fromWei(balance.toString()));
+      this.updateAccounts(newAccount);
+    }
+    this.setUsers();
+  }
+  async setUsers() {
     this.manager = new User('Manager', this.accounts[0].address, this.accounts[0].balance);
     this.seller = new User('Seller', this.accounts[1].address, this.accounts[1].balance);
     this.buyer = new User('Buyer', this.accounts[2].address, this.accounts[2].balance);
     this.notary = new User('Notary', this.accounts[3].address, this.accounts[3].balance);
     this.registrar = new User('Registrar', this.accounts[4].address, this.accounts[4].balance);
-    console.log(this.seller);
-    this.initializeContracts();
+    console.log('Users initialized');
+    this.setContracts();
   }
-
-  async initializeContracts() {
-    
+ 
+  async setContracts() {
+    // Land Registry Init
     this.landRegistry = await this.LandRegistry.new(
       'Hospitalet de Llobregat, L\' Nº 02',
       'Sevilla, 11-13,2º-2ª - Cornella de Llobregat [08940]',
@@ -134,19 +118,32 @@ export class Web3Service implements OnInit {
       '(93)475 26 86',
       'hospitalet2registrodelapropiedad.org'
     , {from: this.manager.address});
+    await this.landRegistry.setRegistrar(this.registrar.address, {from: this.manager.address});
+    let evt = await this.landRegistry.createProperty(123, 456, "Joan Maragall", this.seller.address, {from: this.registrar.address});
+    await this.landRegistry.register(evt.logs[0].args.property, 3416723, 'New property Registration', this.accounts[6].address, {from: this.registrar.address});
+    // Banking Init
     this.euroTokenBanking = await this.EuroTokenBanking.new({from: this.manager.address});
     this.euroToken = await this.EuroToken.at(
       await this.euroTokenBanking.euroToken.call({from: this.manager.address})
     , {from: this.manager.address});
 
-    // console.log('LandRegistry initialized...');
-    // console.log(this.landRegistry);
-    // let info = await this.landRegistry.getLandRegistryInfo.call({from: this.manager.address});
-    // console.log(info);
-    // this.propertyCreatedEvent();
-    // await this.landRegistry.setRegistrar(this.registrar.address, {from: this.manager.address});
-    // let info = await this.landRegistry.createProperty(123, 123, "Casa", this.seller.address, {from: this.registrar.address});
-    // console.log('Property Created: ', info);
+    this.listenPropertyRegistrations();
+  }
+
+  async listenPropertyRegistrations() {
+    let event = this.landRegistry.PropertyRegistration({}, {fromBlock: 0});
+    event.watch(async (err, res) => {
+      if (err) {
+        console.log(err);
+        return;
+      } 
+      let newProperty = await this.PropertyContract.at(res.args.property, {from: this.manager.address});
+      console.log(newProperty);
+      let inf = await newProperty.getPropertyInfo({from: this.manager.address});
+      this.properties.push(new Property(inf[0].toNumber(), inf[1].toNumber(), res.args.property, inf[2], inf[3]));
+      console.log(this.properties);
+      //console.log('NUEVO REGISTRO:', res.args.property);
+    })
   }
 
   updateAccounts(account: Account, modify = false) {
@@ -173,5 +170,22 @@ export class Web3Service implements OnInit {
     });
   }
 
+  selectUser(newUser) {
+    switch(newUser) {
+      case 'seller':
+        this.selectedUser = this.seller;
+        break;
+      case 'buyer':
+        this.selectedUser = this.buyer;
+        break;
+      case 'notary': 
+        this.selectedUser = this.notary;
+        break;
+      case 'registrar': 
+        this.selectedUser = this.registrar;
+        break;
+    }
+    console.log('New user selected: ', this.selectedUser.name);
+  }
 
 }

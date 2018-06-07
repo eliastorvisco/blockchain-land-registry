@@ -29,6 +29,11 @@
     transition: all 0.5s ease;
   }
   
+ #sidebar-filter {
+   height: 100%;
+  background: rgba(0,0,0,0.5);
+ }
+
   #wrapper.toggled #sidebar-wrapper {
     width: 250px;
   }
@@ -36,7 +41,7 @@
   #page-content-wrapper {
     width: 100%;
     position: absolute;
-    padding: 15px;
+    padding: 0px;
   }
   
   #wrapper.toggled #page-content-wrapper {
@@ -48,7 +53,7 @@
   /* Sidebar Styles */
   
   #sidebar-wrapper .sidebar-nav {
-    background: rgba(0,0,0,0.5);
+    
     position: absolute;
     top: 0;
     width: 250px;
