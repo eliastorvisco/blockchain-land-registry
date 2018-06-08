@@ -16,11 +16,9 @@ contract PurchaseContract {
 
     EuroToken public euroToken;
 
-    Property public property;
+    address public property;
     uint public price;    
     string public contractHash;
-    bool public hasCalificated;
-    bool public calification;
    
 
     struct ContractParticipant {
@@ -32,19 +30,28 @@ contract PurchaseContract {
         bool signature;
     }
 
-    address public notary;
+    struct Registrar {
+        address addr;
+        bool hasCalificated;
+        bool calification;
+    }
+
+    struct Notary {
+        address addr;
+    }
 
     ContractParticipant public seller;
     ContractParticipant public buyer;
-    
+    Notary public notary;
+    Registrar public registrar;
 
-    function PurchaseContract(address _property, uint _price, address _euroToken) public {
-        property = Property(_property);
-        seller.addr = property.owner();
-        
+    function PurchaseContract(address _property, uint _price, address _seller, address _registrar, address _euroToken) public {
+        require(Property(_property).getOwner() == _seller);
+        property = _property;
         price = _price;
-        
+        seller.addr = _seller;
         buyer.debt = _price;
+        registrar.addr = _registrar;
         euroToken = EuroToken(_euroToken);
     }
 
@@ -53,7 +60,7 @@ contract PurchaseContract {
     */
 
     function changePhase(Phases newPhase) internal {
-        PhaseChanged(uint(phase), uint(newPhase));
+        emit PhaseChanged(uint(phase), uint(newPhase));
         phase = newPhase;
     } 
 
@@ -74,7 +81,7 @@ contract PurchaseContract {
     }
 
     function addNotary(address _notary) public onlyWhen(Phases.Join) onlyBuyer {
-        notary = _notary;
+        notary.addr = _notary;
         changePhase(Phases.Writting);
     }
 
@@ -131,7 +138,7 @@ contract PurchaseContract {
             buyer.hasSigned = true;
         }
 
-        emit Signed(msg.sender, _signature);
+        Signed(msg.sender, _signature);
 
         if (buyer.hasSigned && buyer.signature && seller.hasSigned && seller.signature) {
             changePhase(Phases.Calificating);
@@ -143,14 +150,14 @@ contract PurchaseContract {
      */
 
     function calificate(bool _calification) public onlyRegistrar onlyWhen(Phases.Calificating) {
-        calification = _calification;
-        hasCalificated = true;
+        registrar.calification = _calification;
+        registrar.hasCalificated = true;
         changePhase(Phases.Finished);
         if (_calification) {
-            Property(property).resolvePurchase();
+            Property(property).transferOwnership(seller.addr, buyer.addr);
             euroToken.transferFrom(buyer.addr, seller.addr, buyer.debt);
         }
-        emit Calificated(property, _calification, seller.addr, buyer.addr);
+        Calificated(property, _calification, seller.addr, buyer.addr);
     }
 
     /***********************************************
@@ -159,8 +166,8 @@ contract PurchaseContract {
 
     function isBuyer() internal view returns (bool) {return (msg.sender == buyer.addr);}
     function isSeller() internal view returns (bool) {return (msg.sender == seller.addr);}
-    function isNotary() internal view returns (bool) {return (msg.sender == notary);}
-    function isRegistrar() internal view returns (bool) {return (msg.sender == property.landRegistry().registrar());}
+    function isNotary() internal view returns (bool) {return (msg.sender == notary.addr);}
+    function isRegistrar() internal view returns (bool) {return (msg.sender == registrar.addr);}
 
     /***********************************************
      *  Modifiers
@@ -176,22 +183,6 @@ contract PurchaseContract {
     /***********************************************
     *  Info Getters
     */
-    
-    function getSeller() public view returns (address) {
-        return seller.addr;
-    }
-    
-    function getBuyer() public view returns (address) {
-        return buyer.addr;
-    }
-    
-    function getNotary() public view returns (address) {
-        return notary;
-    }
-    
-    function getRegistrar() public view returns (address) {
-        return property.landRegistry().registrar();
-    }
     
     function getSellerSummary() public view returns (address addr, uint debt, uint paid, bool contractValidation, bool hasSigned, bool signature) {
         return (
@@ -215,12 +206,12 @@ contract PurchaseContract {
         );
     }
 
-    function getContractSummary() public view returns (uint, bool, bool, bool) {
+    function getContractSummary() public view returns (uint currentPhase, bool contractWritten, bool hasBeenCalificated, bool calification) {
         return(
             uint(phase),
             (bytes(contractHash).length > 0),
-            hasCalificated,
-            calification
+            registrar.hasCalificated,
+            registrar.calification
         );
     }
 }

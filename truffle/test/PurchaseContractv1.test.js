@@ -10,7 +10,6 @@ contract('PurchaseContract', function(accounts) {
     let notary = accounts[2];
     let registrar = accounts[3];
     let manager = accounts[4];
-    let fakeDocument = accounts[5];
     
     let bank;
     let euroToken;
@@ -19,14 +18,6 @@ contract('PurchaseContract', function(accounts) {
     let property;
     let purchaseContract;
     
-    let lRInfo = {
-        name: 'Hospitalet de Llobregat, L\' Nº 02',
-        addressInfo: 'Sevilla, 11-13,2º-2ª - Cornella de Llobregat [08940]',
-        province: 'Barcelona',
-        telephone: '(93)475 26 85',
-        fax: '(93)475 26 86',
-        email: 'hospitalet2registrodelapropiedad.org'
-    }
 
     before('setup land registry and property', async function() {
         console.log('Prueba');
@@ -35,34 +26,25 @@ contract('PurchaseContract', function(accounts) {
         await bank.cashIn(seller, 2000000000, {from: manager});
         await bank.cashIn(buyer,  2000000000, {from: manager});
 
-        landRegistry = await LandRegistry.new(
-           lRInfo.name,
-           lRInfo.addressInfo,
-           lRInfo.province,
-           lRInfo.telephone,
-           lRInfo.fax,
-           lRInfo.email
-        , {from: manager});
-        await landRegistry.setRegistrar(registrar, {from: manager});
+        landRegistry = await LandRegistry.new('Catalunya', 'Hospitalet II', 'Calle Inventada', {from: manager});
+        await landRegistry.nameRegistrar(registrar, {from: manager});
+        let res = await landRegistry.registerProperty(123, 346, 'Propiedad Inventada', seller, {from: registrar});
+        property = await Property.at(res.logs[0].args.property, {from: seller});
+        console.log(property.address);
+        await property.createPurchaseContract(1000000000, euroToken.address, {from: seller});
+        let transferInfo = await property.getTransfershipInfo({from: seller});
+        console.log(transferInfo);
+        purchaseContract = await PurchaseContract.at(transferInfo[1], {from: seller});
+        
+        let info = await purchaseContract.getSellerSummary({from: seller});
 
-        property = await Property.new(1234, 1234, 'Calle Joan Maragall', seller, landRegistry.address, {from: registrar});
-        console.log('Property Created: ', property.address);
-        await landRegistry.register(property.address, 34578, 'New Registration',  fakeDocument, {from: registrar});
-        console.log('Property registration state: ', await landRegistry.isRegistered.call(property.address, {from: registrar}));
-        
-        purchaseContract = await PurchaseContract.new(property.address, 1000000000, euroToken.address, {from: seller});
-        
-        await property.setPurchaseContract(purchaseContract.address, {from: seller});
-        
-        let sellerSummary = await purchaseContract.getSellerSummary({from: seller});
-        console.log('Seller Summary: ', sellerSummary);
-
+        //console.log(info);
     })
 
     it('allows seller add a buyer', async function() {
         await purchaseContract.addBuyer(buyer, {from: seller});
         let buyerInfo = await purchaseContract.buyer.call({from: seller});
-        console.log(buyerInfo);
+        //console.log(buyerInfo);
     })
 
     it('allows buyer add a notary', async function() {
@@ -121,7 +103,7 @@ contract('PurchaseContract', function(accounts) {
     })
 
     it('is transfered', async function() {
-        let newOwner = await property.owner.call({from: buyer});
+        let newOwner = await property.getOwner({from: buyer});
         assert.equal(newOwner, buyer, 'The ownersip transfer was not successful');
     })
 

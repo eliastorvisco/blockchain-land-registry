@@ -13,26 +13,22 @@ contract Property {
     uint public CRU;
     string public description;
     address public owner;
-    address public landRegistry;
-    address public purchaseContract;
+    LandRegistry public landRegistry;
+    PurchaseContract public purchaseContract;
 
     function Property(uint _IDUFIR, uint _CRU, string _description, address _owner, address _landRegistry) public {
-
+        landRegistry = LandRegistry(_landRegistry);
+        require(msg.sender == landRegistry.registrar());
         IDUFIR = _IDUFIR;
         CRU = _CRU;
         description = _description;
         owner = _owner;
-        landRegistry = _landRegistry;
+        
     }
 
     /***********************************************
      *  Property Getters
      */
-
-    function getIDUFIR() public view returns (uint _IDUFIR) {return IDUFIR;}
-    function getCRU() public view returns (uint _CRU) {return CRU;}
-    function getDescription() public view returns (string _description) {return description;}
-    function getOwner() public view returns (address _owner) {return owner;}
 
     function getPropertyInfo() public view returns (uint _IDUFIR, uint _CRU, string _description, address _owner) {
         return (IDUFIR, CRU, description, owner);
@@ -42,15 +38,23 @@ contract Property {
      *  Property Logics
      */
 
-    function createPurchaseContract(uint price, address euroToken) onlyOwner public {
-        require(purchaseContract == address(0));
-        purchaseContract = new PurchaseContract(this, price, owner, LandRegistry(landRegistry).registrar(), euroToken);
+    function setPurchaseContract(address _purchaseContract) public onlyOwner {
+        require(purchaseContract == PurchaseContract(0));
+        purchaseContract = PurchaseContract(_purchaseContract);
+        require(purchaseContract.property() == address(this) && purchaseContract.getSeller() == owner && purchaseContract.getRegistrar() == landRegistry.registrar());
     }
 
-    function transferOwnership(address from, address to) public {
-        require(msg.sender == purchaseContract);
-        owner = to;
-        purchaseContract = address(0); 
+    function resolvePurchase() public {
+        require(msg.sender == address(purchaseContract) && purchaseContract.hasCalificated());
+        if(purchaseContract.calification()) {
+            transferOwnership(purchaseContract.getSeller(), purchaseContract.getBuyer());
+        } 
+        purchaseContract = PurchaseContract(0); 
+    }
+
+    function transferOwnership(address currentOwner, address newOwner) internal  {
+        require(currentOwner == owner);
+        owner = newOwner;
     }
 
     modifier onlyOwner() {

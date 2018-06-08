@@ -71,14 +71,17 @@ contract LandRegistry is MultiAdmin {
         emit IncapacitationBook(subject, identifier, description, document);
     }
 
+    function createProperty(uint IDUFIR, uint CRU, string description, address owner) public onlyRegistrar {
+        Property property = new Property(IDUFIR, CRU, description, owner, this); 
+        emit PropertyCreated(property);
+    }
+
     function register(address property, uint identifier, string description, address document) public onlyRegistrar {
-        Property newProperty = Property(property);
-        require(newProperty.landRegistry() == address(this));
         bool firstRegistration = !isRegistered[property];
         uint IDUFIR;
         uint CRU;
         address owner;
-        (IDUFIR, CRU,, owner) = newProperty.getPropertyInfo();
+        (IDUFIR, CRU,, owner) = Property(property).getPropertyInfo();
 
         isRegistered[property] = true;
         emit PropertyRegistration(IDUFIR, CRU, firstRegistration, property, owner);
