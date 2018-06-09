@@ -12,17 +12,6 @@ contract PurchaseContract {
     event Calificated(address property, bool calification, address oldOwner, address newOwner);
 
     enum Phases { Join, Writting, Validation, Paying, Signing, Calificating, Finished, Canceled }
-    Phases public phase;
-
-    EuroToken public euroToken;
-
-    Property public property;
-    uint public price;    
-    string public contractHash;
-    bool public hasCalificated;
-    bool public calification;
-   
-
     struct ContractParticipant {
         address addr;
         uint debt;
@@ -32,11 +21,19 @@ contract PurchaseContract {
         bool signature;
     }
 
-    address public notary;
-
+    Phases public phase;
+    Property public property;
+    uint public price;    
+    string public contractHash;
+    bool public calification;
+   
     ContractParticipant public seller;
     ContractParticipant public buyer;
-    
+    address public notary;
+
+    EuroToken public euroToken;
+
+    address whoCanceled;
 
     function PurchaseContract(address _property, uint _price, address _euroToken) public {
         property = Property(_property);
@@ -62,6 +59,7 @@ contract PurchaseContract {
      */
 
     function cancel() public onlySellerOrBuyer onlyBefore(Phases.Calificating) {
+        whoCanceled = msg.sender;
         changePhase(Phases.Canceled);
     }
 
@@ -133,7 +131,8 @@ contract PurchaseContract {
 
         emit Signed(msg.sender, _signature);
 
-        if (buyer.hasSigned && buyer.signature && seller.hasSigned && seller.signature) {
+        if (!_signature) cancel();
+        else if (buyer.hasSigned && buyer.signature && seller.hasSigned && seller.signature) {
             changePhase(Phases.Calificating);
         }
     }
@@ -144,7 +143,6 @@ contract PurchaseContract {
 
     function calificate(bool _calification) public onlyRegistrar onlyWhen(Phases.Calificating) {
         calification = _calification;
-        hasCalificated = true;
         changePhase(Phases.Finished);
         if (_calification) {
             Property(property).resolvePurchase();
@@ -209,18 +207,21 @@ contract PurchaseContract {
             buyer.addr,
             buyer.debt,
             (phase > Phases.Paying)? buyer.debt: euroToken.allowance(buyer.addr, this),
+            
             buyer.contractValidation,
             buyer.hasSigned,
             buyer.signature
         );
     }
 
-    function getContractSummary() public view returns (uint, bool, bool, bool) {
+    function getContractSummary() public view returns (uint, string, bool, address, address, address) {
         return(
             uint(phase),
-            (bytes(contractHash).length > 0),
-            hasCalificated,
-            calification
+            contractHash,
+            calification,
+            whoCanceled,
+            notary,
+            property.landRegistry()
         );
     }
 }

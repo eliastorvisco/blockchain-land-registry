@@ -6,7 +6,9 @@ import { AppComponent } from './app.component';
 import { HomeComponent } from './home/home.component';
 import { AppRoutingModule } from './app-routing.module';
 import { LandRegistryComponent } from './land-registry/land-registry.component';
-import { PropertyCreationComponent } from './property-creation/property-creation.component';
+import { PropertyComponent } from './property/property.component';
+import { PurchaseContractComponent } from './purchase-contract/purchase-contract.component';
+
 
 
 
@@ -16,7 +18,8 @@ import { PropertyCreationComponent } from './property-creation/property-creation
     AppComponent,
     HomeComponent,
     LandRegistryComponent,
-    PropertyCreationComponent
+    PropertyComponent,
+    PurchaseContractComponent
   ],
   imports: [
     BrowserModule,

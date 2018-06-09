@@ -2,6 +2,7 @@ import { Injectable, OnInit } from '@angular/core';
 import { Account } from '../utils/account';
 import { User } from '../utils/User';
 import { Property } from '../utils/Property';
+import { LandRegistry } from '../utils/LandRegistry';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 const Web3 = require('web3');
@@ -18,7 +19,7 @@ const propertyArtifacts = require('../../truffle/build/contracts/Property.json')
 
 export class Web3Service implements OnInit {
 
-  LandRegistry = contract(landRegistryArtifacts);
+  LandRegistryContract = contract(landRegistryArtifacts);
   EuroTokenBanking = contract(euroTokenBankingArtifacts);
   EuroToken = contract(euroTokenArtifacts);
   PropertyContract = contract(propertyArtifacts);
@@ -32,8 +33,8 @@ export class Web3Service implements OnInit {
   notary: User;
   registrar: User;
 
-  selectedUser: User;
-
+  selectedUserSource = new BehaviorSubject<User>(new User('','',''));
+  selectedUser = this.selectedUserSource.asObservable();
   // Contract Instances
   landRegistry: any;
   euroTokenBanking: any;
@@ -67,8 +68,8 @@ export class Web3Service implements OnInit {
 
   setProviders() {
     Web3.providers.HttpProvider.prototype.sendAsync = Web3.providers.HttpProvider.prototype.send;
-    this.LandRegistry.setProvider(this.web3.currentProvider);
-    this.LandRegistry.defaults({
+    this.LandRegistryContract.setProvider(this.web3.currentProvider);
+    this.LandRegistryContract.defaults({
       gas: 6721975,
       gasPrice: 20000000000
     });
@@ -104,13 +105,14 @@ export class Web3Service implements OnInit {
     this.buyer = new User('Buyer', this.accounts[2].address, this.accounts[2].balance);
     this.notary = new User('Notary', this.accounts[3].address, this.accounts[3].balance);
     this.registrar = new User('Registrar', this.accounts[4].address, this.accounts[4].balance);
+    this.selectUser('seller');
     console.log('Users initialized');
     this.setContracts();
   }
  
   async setContracts() {
     // Land Registry Init
-    this.landRegistry = await this.LandRegistry.new(
+    this.landRegistry = await this.LandRegistryContract.new(
       'Hospitalet de Llobregat, L\' Nº 02',
       'Sevilla, 11-13,2º-2ª - Cornella de Llobregat [08940]',
       'Barcelona',
@@ -118,11 +120,12 @@ export class Web3Service implements OnInit {
       '(93)475 26 86',
       'hospitalet2registrodelapropiedad.org'
     , {from: this.manager.address});
+    console.log('Registry: ', this.landRegistry);
     await this.landRegistry.setRegistrar(this.registrar.address, {from: this.manager.address});
-    let evt = await this.landRegistry.createProperty(123, 456, "Joan Maragall", this.seller.address, {from: this.registrar.address});
-    await this.landRegistry.register(evt.logs[0].args.property, 3416723, 'New property Registration', this.accounts[6].address, {from: this.registrar.address});
-    // Banking Init
+    // // Banking Init
     this.euroTokenBanking = await this.EuroTokenBanking.new({from: this.manager.address});
+    console.log(this.euroTokenBanking);
+
     this.euroToken = await this.EuroToken.at(
       await this.euroTokenBanking.euroToken.call({from: this.manager.address})
     , {from: this.manager.address});
@@ -130,21 +133,7 @@ export class Web3Service implements OnInit {
     this.listenPropertyRegistrations();
   }
 
-  async listenPropertyRegistrations() {
-    let event = this.landRegistry.PropertyRegistration({}, {fromBlock: 0});
-    event.watch(async (err, res) => {
-      if (err) {
-        console.log(err);
-        return;
-      } 
-      let newProperty = await this.PropertyContract.at(res.args.property, {from: this.manager.address});
-      console.log(newProperty);
-      let inf = await newProperty.getPropertyInfo({from: this.manager.address});
-      this.properties.push(new Property(inf[0].toNumber(), inf[1].toNumber(), res.args.property, inf[2], inf[3]));
-      console.log(this.properties);
-      //console.log('NUEVO REGISTRO:', res.args.property);
-    })
-  }
+
 
   updateAccounts(account: Account, modify = false) {
     if (modify) {
@@ -160,32 +149,64 @@ export class Web3Service implements OnInit {
 
   }
 
-  propertyCreatedEvent() {
-    let event = this.landRegistry.PropertyCreated({}, {fromBlock: 0});
-    event.watch((err,res) => {
-      if (err != null) {
-        console.error('Something happened while creating a property...');
-      }
-      console.log(res);
-    });
-  }
-
   selectUser(newUser) {
     switch(newUser) {
       case 'seller':
-        this.selectedUser = this.seller;
+        this.selectedUserSource.next(this.seller);
         break;
       case 'buyer':
-        this.selectedUser = this.buyer;
+        this.selectedUserSource.next(this.buyer);
         break;
       case 'notary': 
-        this.selectedUser = this.notary;
+        this.selectedUserSource.next(this.notary);
         break;
       case 'registrar': 
-        this.selectedUser = this.registrar;
+        this.selectedUserSource.next(this.registrar);
         break;
     }
-    console.log('New user selected: ', this.selectedUser.name);
+    console.log('User selected: ', newUser);
+  }
+
+  // Events
+
+  async listenPropertyRegistrations() {
+    let event = this.landRegistry.PropertyRegistration({}, {fromBlock: 0});
+    event.watch(async (err, res) => {
+      if (err) {
+        console.log(err);
+        return;
+      } 
+      this.properties.push(await this.getProperty(res.args.property));
+    })
+  }
+
+  async getProperty(address, caller = this.selectedUserSource.value.address): Promise<Property> {
+    let newProperty = await this.PropertyContract.at(address, {from: caller});
+    let propertyInfo = await newProperty.getPropertyInfo({from: caller});
+    return new Property(
+      propertyInfo[0].toNumber(), // IDUFIR
+      propertyInfo[1].toNumber(), // CRU
+      newProperty.address,        //Address
+      propertyInfo[2],            //Description
+      propertyInfo[3],            //Owner
+      propertyInfo[4],            //Land Registry
+      propertyInfo[5]             //Purchase Contract
+    );
+  }
+
+  async getLandRegistry(caller = this.selectedUserSource.value.address): Promise<LandRegistry> {
+    let landRegistryInfo = await this.landRegistry.getLandRegistryInfo({from: caller});
+    console.log(landRegistryInfo);
+    return new LandRegistry(
+      this.landRegistry.address,
+      landRegistryInfo[0],
+      landRegistryInfo[1],
+      landRegistryInfo[2],
+      landRegistryInfo[3],
+      landRegistryInfo[4],
+      landRegistryInfo[5],
+      landRegistryInfo[6],
+    );  
   }
 
 }

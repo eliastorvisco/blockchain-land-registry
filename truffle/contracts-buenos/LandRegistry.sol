@@ -78,7 +78,7 @@ contract LandRegistry is MultiAdmin {
         uint IDUFIR;
         uint CRU;
         address owner;
-        (IDUFIR, CRU,, owner,,) = newProperty.getPropertyInfo();
+        (IDUFIR, CRU,, owner) = newProperty.getPropertyInfo();
 
         isRegistered[property] = true;
         emit PropertyRegistration(IDUFIR, CRU, firstRegistration, property, owner);

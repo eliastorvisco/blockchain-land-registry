@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Web3Service } from '../web3.service';
 import { Property } from '../../utils/Property';
+import { User } from '../../utils/User';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-land-registry',
@@ -11,15 +13,24 @@ export class LandRegistryComponent implements OnInit {
   
 
   page = 0;
-  model: Property = new Property('', '', '', '', '');
+  error:string;
+  model: Property = new Property('', '', '', '', '', '', '');
+  user: User;
+  userSubscription:any;
 
-
-  constructor(private web3: Web3Service) {
+  constructor(public router:Router, private web3: Web3Service) {
     
   }
 
   ngOnInit() {
-   
+    this.userSubscription = this.web3.selectedUser.subscribe(
+      selectedUser => {this.user = selectedUser; console.log('HELLO: ', selectedUser.name)}, 
+      err => {console.log('Something happened: ', err);
+    });
+  }
+
+  ngOnDestroy() {
+    this.userSubscription.unsubscribe();
   }
 
   changePage(newPage) {
@@ -28,28 +39,30 @@ export class LandRegistryComponent implements OnInit {
   }
 
   async newProperty() {
-    let info = await this.web3.landRegistry.createProperty(
-      this.model.IDUFIR, this.model.CRU, this.model.description, this.model.owner, {from: this.web3.selectedUser.address});
-    console.log('Nueva Propiedad: ', info.logs[0].args.property);
-    await this.web3.landRegistry.register(info.logs[0].args.property, 2345, 'Nueva Inscripcion', this.model.owner, {from: this.web3.selectedUser.address});
+    try {
+      let newProperty = await this.web3.PropertyContract.new(
+        this.model.IDUFIR, this.model.CRU, 
+        this.model.description, 
+        this.model.owner, 
+        this.web3.landRegistry.address, 
+        {from: this.user.address}
+      );
+  
+      console.log('Nueva Propiedad: ', newProperty.address);
+      await this.web3.landRegistry.register(newProperty.address, 2345, 'Nueva Inscripcion', this.model.owner, {from: this.user.address});
+    } catch(err) {
+      this.error = 'Could not create or register the property';
+      setTimeout(() => { 
+        this.error = ""; 
+      }, 5000);
+    }
+    
   }
 
-  
-
-}
-
-class PropertyRegistrationUnit {
-  IDUFIR:any;
-  CRU:any;
-  firstRegistration:any;
-  property:any;
-  owner:any;
-  
-  constructor(IDUFIR, CRU, firstRegistration, property, owner) {
-      this.IDUFIR = IDUFIR;
-      this.CRU = CRU;
-      this.firstRegistration = firstRegistration;
-      this.property = property;
-      this.owner = owner;
+  async openProperty(property) {
+    this.router.navigate(['property', property]);
+    console.log(property);
   }
+  
+
 }

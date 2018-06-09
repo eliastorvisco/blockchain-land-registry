@@ -1,20 +1,23 @@
 <ul class="nav nav-pills nav-fill">
     <li class="nav-item">
-      <a class="nav-link" [ngClass]="{'active btn btn-dark': page==0}" (click)="changePage(0)">Ver Propiedades</a>
+      <a class="nav-link hover" [ngClass]="{'active btn btn-dark': page==0}" (click)="changePage(0)">Ver Propiedades</a>
     </li>
-    <li class="nav-item">
+    <li class="nav-item hover ">
       <a class="nav-link" [ngClass]="{'active btn btn-dark': page==1}" (click)="changePage(1)">Crear Propiedad</a>
     </li>
-    <li class="nav-item">
+    <li class="nav-item hover">
       <a class="nav-link" [ngClass]="{'active btn btn-dark': page==2}" (click)="changePage(2)">Crear Asiento</a>
     </li>
   </ul>
 
+  <div *ngIf="error"  class="alert alert-danger display-none" id="add-item-error">
+    {{error}}
+  </div>
 
   <div *ngIf="page==0">
       <h1>Properties Registered</h1>
 
-      <table class="table">
+      <table class="table table-hover">
           <thead class="thead-dark">
             <tr>
               <th scope="col">IDUFIR</th>
@@ -25,7 +28,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let property of web3.properties; let i = index">
+            <tr *ngFor="let property of web3.properties; let i = index" (click)=openProperty(property.address)>
               <td>{{property.IDUFIR}}</td>
               <td>{{property.CRU}}</td>
               <td style="width: 50px; overflow: hidden;text-overflow:ellipsis;">{{property.address}}</td>
