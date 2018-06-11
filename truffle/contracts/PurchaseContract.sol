@@ -2,50 +2,75 @@ pragma solidity ^0.4.17;
 
 import "./Property.sol";
 import "./EuroToken.sol";
+import "./PublicFinance.sol";
 
 contract PurchaseContract {
     // Property Info
 
     event PhaseChanged(uint oldPhase, uint newPhase);
-    event Signed(address from, bool signature);
+    event Signed(address signer);
     event Paid(address from, uint paid);
-    event Calificated(address property, bool calification, address oldOwner, address newOwner);
+    event Qualified(address property, bool qualification, address oldOwner, address newOwner);
 
-    enum Phases { Join, Writting, Validation, Paying, Signing, Calificating, Finished, Canceled }
-    Phases public phase;
+    enum Phases { Join, SignalPayment, Writting, Validation, Paying, Signing, Calificating, Finished, Canceled }
+
+    struct Debts {
+        uint totalDebt;
+        address[] destinataries;
+        mapping(address => uint) debtWith;
+    }
+
+    struct SignerInfo {
+        address addr;
+        bool contractValidation;
+        bool hasSigned;
+    }
 
     EuroToken public euroToken;
 
+    Phases public phase;
+
     Property public property;
-    uint public price;    
+    uint public price;  
+    uint public paymentSignal;  
     string public contractHash;
-    bool public hasCalificated;
-    bool public calification;
-   
+    bool public qualification;
 
-    struct ContractParticipant {
-        address addr;
-        uint debt;
-        bool hasValidated;
-        bool contractValidation;
-        bool hasSigned;
-        bool signature;
-    }
-
+    SignerInfo public seller;
+    SignerInfo public buyer;
+    Debts public sellerDebts;
+    Debts public buyerDebts;
+    
     address public notary;
 
-    ContractParticipant public seller;
-    ContractParticipant public buyer;
-    
+    address public canceller;
 
-    function PurchaseContract(address _property, uint _price, address _euroToken) public {
+
+    function PurchaseContract(address _property, address _buyer, uint _price, uint _paymentSignal) public {
+        require(Property(_property).owner() == msg.sender);
+
         property = Property(_property);
-        seller.addr = property.owner();
-        
         price = _price;
-        
-        buyer.debt = _price;
-        euroToken = EuroToken(_euroToken);
+        paymentSignal = _paymentSignal;
+        euroToken = property.landRegistry().publicFinance().euroToken();
+
+        seller.addr = property.owner();
+        buyer.addr = _buyer;
+        addBuyerDebt(seller.addr, price - paymentSignal);
+        addBuyerDebt(property.landRegistry().publicFinance(), property.landRegistry().publicFinance().calculate("ITP", price));
+
+    }
+
+    function addSellerDebt(address destinatary, uint debt) internal {
+        if (sellerDebts.debtWith[destinatary] == 0) sellerDebts.destinataries.push(destinatary);
+        sellerDebts.debtWith[destinatary] = sellerDebts.debtWith[destinatary] + debt;
+        sellerDebts.totalDebt = sellerDebts.totalDebt + debt;
+    }
+
+    function addBuyerDebt(address destinatary, uint debt) internal {
+        if (buyerDebts.debtWith[destinatary] == 0) buyerDebts.destinataries.push(destinatary);
+        buyerDebts.debtWith[destinatary] = buyerDebts.debtWith[destinatary] + debt;
+        buyerDebts.totalDebt = buyerDebts.totalDebt + debt;
     }
 
     /***********************************************
@@ -61,21 +86,40 @@ contract PurchaseContract {
      *  -> Cancel
      */
 
-    function cancel() public onlySellerOrBuyer onlyBefore(Phases.Calificating) {
+    function cancel() public onlyParticipantOrNotary onlyBefore(Phases.Calificating) {
+
+        if (phase <= Phases.SignalPayment || isNotary()) {
+            // Returns all the money
+            refund();
+        } else if (isBuyer()) {
+            euroToken.transferFrom(buyer.addr, seller.addr, paymentSignal);
+            refund();
+        } else if (isSeller()) {
+            euroToken.transferFrom(seller.addr, buyer.addr, paymentSignal);
+            refund();
+        }
+
+        canceller = msg.sender;
         changePhase(Phases.Canceled);
+        property.resolvePurchase();
+
     }
 
     /***********************************************
      *  Phase: Join
      */
 
-    function addBuyer(address _buyer) public onlyWhen(Phases.Join) onlySeller {
-        buyer.addr = _buyer;
-    }
-
     function addNotary(address _notary) public onlyWhen(Phases.Join) onlyBuyer {
         notary = _notary;
-        changePhase(Phases.Writting);
+        changePhase(Phases.SignalPayment);
+    }
+
+    function checkSignalPayment() public onlyWhen(Phases.SignalPayment) onlySellerOrBuyer {
+        if (euroToken.allowance(buyer.addr, this) >= paymentSignal && euroToken.allowance(seller.addr, this) >= paymentSignal) {
+            
+            changePhase(Phases.Writting);
+            
+        }
     }
 
     /***********************************************
@@ -109,8 +153,9 @@ contract PurchaseContract {
      */
 
     function updatePayment() public onlySellerOrBuyer onlyWhen(Phases.Paying) {
-        emit Paid(msg.sender, euroToken.allowance(msg.sender, this));
-        if (euroToken.allowance(buyer.addr, this) == buyer.debt && euroToken.allowance(seller.addr, this) == seller.debt) {
+        
+        if (euroToken.allowance(buyer.addr, this) >= (buyerDebts.totalDebt + paymentSignal) 
+            && euroToken.allowance(seller.addr, this) >= (sellerDebts.totalDebt + paymentSignal)) {
             changePhase(Phases.Signing);
         }
     }
@@ -119,21 +164,18 @@ contract PurchaseContract {
      *  Phase.Signing
      */
 
-    function sign(bool _signature) public onlySellerOrBuyer onlyWhen(Phases.Signing) {
+    function sign() public onlySellerOrBuyer onlyWhen(Phases.Signing) {
         
         if (isSeller()) {
-            require(!seller.hasSigned);
-            seller.signature = _signature;
             seller.hasSigned = true;
         } else if (isBuyer()) {
             require(!buyer.hasSigned);
-            buyer.signature = _signature;
             buyer.hasSigned = true;
         }
 
-        emit Signed(msg.sender, _signature);
+        emit Signed(msg.sender);
 
-        if (buyer.hasSigned && buyer.signature && seller.hasSigned && seller.signature) {
+        if (buyer.hasSigned && seller.hasSigned) {
             changePhase(Phases.Calificating);
         }
     }
@@ -142,15 +184,32 @@ contract PurchaseContract {
      *  Phase.Calificating
      */
 
-    function calificate(bool _calification) public onlyRegistrar onlyWhen(Phases.Calificating) {
-        calification = _calification;
-        hasCalificated = true;
+    function qualify(bool _qualification) public onlyRegistrar onlyWhen(Phases.Calificating) {
+        qualification = _qualification;
+        
+        if (qualification) pay();
+        else refund();
+
         changePhase(Phases.Finished);
-        if (_calification) {
-            Property(property).resolvePurchase();
-            euroToken.transferFrom(buyer.addr, seller.addr, buyer.debt);
+        property.resolvePurchase(); 
+    }
+
+    function refund() internal {
+        euroToken.transferFrom(buyer.addr, buyer.addr, euroToken.allowance(buyer.addr, this));
+        euroToken.transferFrom(seller.addr, seller.addr, euroToken.allowance(seller.addr, this));
+    }
+
+    function pay() internal {
+        for(uint i = 0; i < buyerDebts.destinataries.length; i ++) {
+            euroToken.transferFrom(buyer.addr, buyerDebts.destinataries[i], buyerDebts.debtWith[buyerDebts.destinataries[i]]);
         }
-        emit Calificated(property, _calification, seller.addr, buyer.addr);
+        euroToken.transferFrom(buyer.addr, seller.addr, paymentSignal);
+        euroToken.transferFrom(buyer.addr, buyer.addr, euroToken.allowance(buyer.addr, this));
+
+        for(i = 0; i < sellerDebts.destinataries.length; i ++) {
+            euroToken.transferFrom(seller.addr, sellerDebts.destinataries[i], sellerDebts.debtWith[sellerDebts.destinataries[i]]);
+        }
+        euroToken.transferFrom(seller.addr, seller.addr, euroToken.allowance(seller.addr, this));
     }
 
     /***********************************************
@@ -161,12 +220,16 @@ contract PurchaseContract {
     function isSeller() internal view returns (bool) {return (msg.sender == seller.addr);}
     function isNotary() internal view returns (bool) {return (msg.sender == notary);}
     function isRegistrar() internal view returns (bool) {return (msg.sender == property.landRegistry().registrar());}
+    function hasBeenCanceled() public view returns (bool) {return (phase == Phases.Canceled);}
+    function hasBeenQualified() public view returns (bool) {return (phase == Phases.Finished);}
 
     /***********************************************
      *  Modifiers
      */
 
     modifier onlySellerOrBuyer() {require(isSeller() || isBuyer()); _;}
+    modifier onlyParticipant() {require(isSeller() || isBuyer()); _;}
+    modifier onlyParticipantOrNotary() {require(isSeller() || isBuyer() || isNotary()); _;}
     modifier onlyBuyer() {require(isBuyer()); _;}
     modifier onlySeller() {require(isSeller()); _;}
     modifier onlyNotary() {require(isNotary()); _;}
@@ -177,6 +240,8 @@ contract PurchaseContract {
     *  Info Getters
     */
     
+    
+
     function getSeller() public view returns (address) {
         return seller.addr;
     }
@@ -192,35 +257,71 @@ contract PurchaseContract {
     function getRegistrar() public view returns (address) {
         return property.landRegistry().registrar();
     }
-    
-    function getSellerSummary() public view returns (address addr, uint debt, uint paid, bool contractValidation, bool hasSigned, bool signature) {
+
+    function getSellerInfo() public view returns (address addr, bool contractValidation, bool hasSigned) {
         return (
             seller.addr,
-            seller.debt,
-            (phase > Phases.Paying)? seller.debt: euroToken.allowance(seller.addr, this),
             seller.contractValidation,
-            seller.hasSigned,
-            seller.signature
+            seller.hasSigned
         );
     }
 
-    function getBuyerSummary() public view returns (address addr, uint debt, uint paid, bool contractValidation, bool hasSigned, bool signature) {
+    
+
+    function getSellerDebtDestinataries() public view returns (address[] destinataries) {return sellerDebts.destinataries;}
+    function getBuyerDebtDestinataries() public view returns (address[] destinataries) {return buyerDebts.destinataries;}
+
+    function getSellerDebtWith(address destinatary) public view returns (uint) {return sellerDebts.debtWith[destinatary];} 
+    function getBuyerDebtWith(address destinatary) public view returns (uint) {return buyerDebts.debtWith[destinatary];} 
+
+
+    function getBuyerInfo() public view returns (address addr, bool contractValidation, bool hasSigned) {
         return (
             buyer.addr,
-            buyer.debt,
-            (phase > Phases.Paying)? buyer.debt: euroToken.allowance(buyer.addr, this),
             buyer.contractValidation,
-            buyer.hasSigned,
-            buyer.signature
+            buyer.hasSigned
         );
     }
+    function getBuyerPaymentStatus() public view returns (uint totalPaid, uint totalDebt) {
 
-    function getContractSummary() public view returns (uint, bool, bool, bool) {
-        return(
-            uint(phase),
-            (bytes(contractHash).length > 0),
-            hasCalificated,
-            calification
-        );
+        totalDebt = buyerDebts.totalDebt;
+
+        if (phase <= Phases.SignalPayment && euroToken.allowance(buyer.addr, this) < paymentSignal) {
+            totalPaid = 0;
+        } else {
+            totalPaid = euroToken.allowance(buyer.addr, this) - paymentSignal;
+        }
+
+        return(totalPaid, totalDebt);
+    }
+
+    function getSellerPaymentStatus() public view returns (uint totalPaid, uint totalDebt) {
+        totalDebt = sellerDebts.totalDebt;
+
+        if (phase == Phases.Join && euroToken.allowance(seller.addr, this) < paymentSignal) {
+            totalPaid = 0;
+        } else {
+            totalPaid = euroToken.allowance(seller.addr, this) - paymentSignal;
+        }
+
+        return(totalPaid, totalDebt);
+    }
+
+    function getSellerSignalPayment() public view returns (uint signal, uint paid) {
+        signal = paymentSignal;
+
+        if (phase > Phases.SignalPayment) paid = signal;
+        else paid = euroToken.allowance(seller.addr, this);
+
+        return(signal, paid);
+    }
+
+    function getBuyerSignalPayment() public view returns (uint signal, uint paid) {
+        signal = paymentSignal;
+
+        if (phase > Phases.SignalPayment) paid = signal;
+        else paid = euroToken.allowance(buyer.addr, this);
+        
+        return(signal, paid);
     }
 }

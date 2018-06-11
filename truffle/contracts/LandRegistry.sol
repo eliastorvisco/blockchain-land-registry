@@ -2,6 +2,7 @@ pragma solidity ^0.4.17;
 
 import "./Property.sol";
 import "./MultiAdmin.sol";
+import "./PublicFinance.sol";
 
 contract LandRegistry is MultiAdmin {
 
@@ -19,6 +20,8 @@ contract LandRegistry is MultiAdmin {
     string public telephone;
     string public fax;
     string public email;
+
+    PublicFinance public publicFinance;
     
     address public registrar;
 
@@ -46,6 +49,10 @@ contract LandRegistry is MultiAdmin {
     /***********************************************
      *  Land Registry Logics
      */
+
+    function setPublicFinance(address _publicFinance) public onlyAdmin(0) {
+        publicFinance = PublicFinance(_publicFinance);
+    }
 
     function setRegistrar(address _registrar) public onlyAdmin(0) {
         registrar = _registrar;

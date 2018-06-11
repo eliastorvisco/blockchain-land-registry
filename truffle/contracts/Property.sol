@@ -45,10 +45,13 @@ contract Property {
     }
 
     function resolvePurchase() public {
-        require(msg.sender == address(purchaseContract) && purchaseContract.hasCalificated());
-        if(purchaseContract.calification()) {
+
+        require(msg.sender == address(purchaseContract));
+
+        if (purchaseContract.hasBeenQualified() && purchaseContract.qualification() == true) {
             transferOwnership(purchaseContract.getSeller(), purchaseContract.getBuyer());
         } 
+
         purchaseContract = PurchaseContract(0); 
     }
 

@@ -15,9 +15,7 @@ contract PurchaseContract {
     struct ContractParticipant {
         address addr;
         uint debt;
-        bool hasValidated;
         bool contractValidation;
-        bool hasSigned;
         bool signature;
     }
 
@@ -37,6 +35,7 @@ contract PurchaseContract {
 
     function PurchaseContract(address _property, uint _price, address _euroToken) public {
         property = Property(_property);
+        require(msg.sender == property.owner());
         seller.addr = property.owner();
         
         price = _price;
@@ -122,17 +121,17 @@ contract PurchaseContract {
         if (isSeller()) {
             require(!seller.hasSigned);
             seller.signature = _signature;
-            seller.hasSigned = true;
+        
         } else if (isBuyer()) {
             require(!buyer.hasSigned);
             buyer.signature = _signature;
-            buyer.hasSigned = true;
+            
         }
 
         emit Signed(msg.sender, _signature);
 
         if (!_signature) cancel();
-        else if (buyer.hasSigned && buyer.signature && seller.hasSigned && seller.signature) {
+        else if (seller.signature && buyer.signature) {
             changePhase(Phases.Calificating);
         }
     }
@@ -190,6 +189,10 @@ contract PurchaseContract {
     function getRegistrar() public view returns (address) {
         return property.landRegistry().registrar();
     }
+
+    function getLandRegistry() public view returns (address) {
+        return property.landRegistry();
+    }
     
     function getSellerSummary() public view returns (address addr, uint debt, uint paid, bool contractValidation, bool hasSigned, bool signature) {
         return (
@@ -197,7 +200,6 @@ contract PurchaseContract {
             seller.debt,
             (phase > Phases.Paying)? seller.debt: euroToken.allowance(seller.addr, this),
             seller.contractValidation,
-            seller.hasSigned,
             seller.signature
         );
     }
@@ -207,12 +209,12 @@ contract PurchaseContract {
             buyer.addr,
             buyer.debt,
             (phase > Phases.Paying)? buyer.debt: euroToken.allowance(buyer.addr, this),
-            
             buyer.contractValidation,
-            buyer.hasSigned,
             buyer.signature
         );
     }
+
+    function getBasicInfo() public view returns ()
 
     function getContractSummary() public view returns (uint, string, bool, address, address, address) {
         return(

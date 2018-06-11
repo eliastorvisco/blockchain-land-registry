@@ -93,62 +93,62 @@ contract('PurchaseContract', function(accounts) {
     })
 
     it('allows notary set a contract hash', async function() {
-        await purchaseContract.setContractHash('0xinvented', {from: notary});
-        let state = await purchaseContract.phase.call({from: notary});
-        assert.equal(state.toNumber(), 3);
+        await purchaseContract.cancel({from: notary});
+        // await purchaseContract.setContractHash('0xinvented', {from: notary});
+        // let state = await purchaseContract.phase.call({from: notary});
+        // assert.equal(state.toNumber(), 3);
         
     })
 
-    it('allows buyer and seller to validate the contract hash', async function() {
-        await purchaseContract.validateContractDocument('0xinvented', {from: buyer});
-        await purchaseContract.validateContractDocument('0xinvented', {from: seller});
-        let state = await purchaseContract.phase.call({from: notary});
-        assert.equal(state.toNumber(), 4);
-    })
+    // it('allows buyer and seller to validate the contract hash', async function() {
+    //     await purchaseContract.validateContractDocument('0xinvented', {from: buyer});
+    //     await purchaseContract.validateContractDocument('0xinvented', {from: seller});
+    //     let state = await purchaseContract.phase.call({from: notary});
+    //     assert.equal(state.toNumber(), 4);
+    // })
 
-    it('allows seller pay', async function() {
-        let totalDebt = (await purchaseContract.getSellerPaymentStatus({from: seller}))[1].toNumber();
-        let signal = (await purchaseContract.paymentSignal.call({from: seller})).toNumber();
-        await euroToken.approve(purchaseContract.address, signal + totalDebt, {from: seller});
-        await purchaseContract.updatePayment({from: seller});
-        let state = await purchaseContract.phase.call({from: notary});
-        assert.equal(state.toNumber(), 4);
-    })
+    // it('allows seller pay', async function() {
+    //     let totalDebt = (await purchaseContract.getSellerDebts({from: seller}))[0].toNumber();
+    //     let signal = (await purchaseContract.paymentSignal.call({from: seller})).toNumber();
+    //     await euroToken.approve(purchaseContract.address, signal + totalDebt, {from: seller});
+    //     await purchaseContract.updatePayment({from: seller});
+    //     let state = await purchaseContract.phase.call({from: notary});
+    //     assert.equal(state.toNumber(), 4);
+    // })
 
-    it('allows buyer pay', async function() {
-        // let dest = await purchaseContract.getBuyerDebtDestinataries({from: buyer});
-        // let debtsPromise =  dest.map(async destinatary => {
-        //     let res = await purchaseContract.getBuyerDebtWith(destinatary, {from: buyer});
-        //     return res.toNumber();
-        // });
+    // it('allows buyer pay', async function() {
+    //     // let dest = await purchaseContract.getBuyerDebtDestinataries({from: buyer});
+    //     // let debtsPromise =  dest.map(async destinatary => {
+    //     //     let res = await purchaseContract.getBuyerDebtWith(destinatary, {from: buyer});
+    //     //     return res.toNumber();
+    //     // });
 
-        // let debts = await Promise.all(debtsPromise);
+    //     // let debts = await Promise.all(debtsPromise);
 
-        let totalDebt = (await purchaseContract.getBuyerPaymentStatus({from: buyer}))[1].toNumber();
-        console.log(totalDebt);
-        let signal = (await purchaseContract.paymentSignal.call({from: seller})).toNumber();
-        await euroToken.approve(purchaseContract.address, signal + totalDebt, {from: buyer});
-        await purchaseContract.updatePayment({from: buyer});
-        let state = await purchaseContract.phase.call({from: notary});
-        assert.equal(state.toNumber(), 5);
-    })
+    //     let totalDebt = (await purchaseContract.getBuyerDebts({from: buyer}))[0].toNumber();
+    //     let signal = (await purchaseContract.paymentSignal.call({from: seller})).toNumber();
+    //     await euroToken.approve(purchaseContract.address, signal + totalDebt, {from: buyer});
+    //     await purchaseContract.updatePayment({from: buyer});
+    //     let state = await purchaseContract.phase.call({from: notary});
+    //     assert.equal(state.toNumber(), 5);
+    // })
 
-    it('allows buyer and seller sign', async function() {
-        await purchaseContract.sign({from: seller});
-        await purchaseContract.sign({from: buyer});
-        let state = await purchaseContract.phase.call({from: notary});
-        assert.equal(state.toNumber(), 6);
-    })
+    // it('allows buyer and seller sign', async function() {
+    //     await purchaseContract.sign({from: seller});
+    //     await purchaseContract.sign({from: buyer});
+    //     let state = await purchaseContract.phase.call({from: notary});
+    //     assert.equal(state.toNumber(), 6);
+    // })
 
-    it('allows registar calificate the contract', async function() {
-        await purchaseContract.qualify(true, {from: registrar});
-        let state = await purchaseContract.phase.call({from: notary});
-        assert.equal(state.toNumber(), 7);
-    })
+    // it('allows registar calificate the contract', async function() {
+    //     await purchaseContract.qualify(false, {from: registrar});
+    //     let state = await purchaseContract.phase.call({from: notary});
+    //     assert.equal(state.toNumber(), 7);
+    // })
 
-    it('is transfered', async function() {
+    it('is not transfered', async function() {
         let newOwner = await property.owner.call({from: buyer});
-        assert.equal(newOwner, buyer, 'The ownersip transfer was not successful');
+        assert.equal(newOwner, seller, 'The ownersip transfer was not successful');
         console.log((await euroToken.balanceOf(seller)).toNumber() / 10000);
         console.log((await euroToken.balanceOf(buyer)).toNumber() / 10000);
         console.log((await euroToken.balanceOf(publicFinance.address)).toNumber() / 10000);
