@@ -43,7 +43,7 @@ export class PropertyComponent implements OnInit {
 
   async newPurchaseContract() {
     console.log(this.purchaseForm.value);
-    await this.web3Service.createPurchaseContract(
+    await this.web3Service.createPurchaseAndSaleContract(
       this.property.address, 
       this.purchaseForm.value.buyer,
       parseInt(this.purchaseForm.value.price),

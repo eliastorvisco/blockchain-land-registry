@@ -1,7 +1,7 @@
 pragma solidity ^0.4.17;
 
 import "./LandRegistry.sol";
-import "./PurchaseAndSale.sol";
+import "./PurchaseContract.sol";
 
 contract Property {
 
@@ -14,7 +14,7 @@ contract Property {
     string public description;
     address public owner;
     LandRegistry public landRegistry;
-    PurchaseAndSale public purchaseAndSaleContract;
+    PurchaseContract public purchaseContract;
 
     function Property(uint _IDUFIR, uint _CRU, string _description, address _owner, address _landRegistry) public {
         landRegistry = LandRegistry(_landRegistry);
@@ -30,29 +30,29 @@ contract Property {
      *  Property Getters
      */
 
-    function getPropertyInfo() public view returns (uint _IDUFIR, uint _CRU, string _description, address _owner, address _landRegistry, address _purchaseAndSaleContract) {
-        return (IDUFIR, CRU, description, owner, landRegistry, purchaseAndSaleContract);
+    function getPropertyInfo() public view returns (uint _IDUFIR, uint _CRU, string _description, address _owner, address _landRegistry, address _purchaseContract) {
+        return (IDUFIR, CRU, description, owner, landRegistry, purchaseContract);
     }
 
     /***********************************************
      *  Property Logics
      */
 
-    function setPurchaseAndSaleContract(address _purchaseAndSaleContract) public onlyOwner {
-        require(purchaseAndSaleContract == PurchaseAndSale(0));
-        purchaseAndSaleContract = PurchaseAndSale(_purchaseAndSaleContract);
-        require(purchaseAndSaleContract.property() == address(this) && purchaseAndSaleContract.seller() == owner); 
+    function setPurchaseContract(address _purchaseContract) public onlyOwner {
+        require(purchaseContract == PurchaseContract(0));
+        purchaseContract = PurchaseContract(_purchaseContract);
+        require(purchaseContract.property() == address(this) && purchaseContract.getSeller() == owner && purchaseContract.getRegistrar() == landRegistry.registrar());
     }
 
     function resolvePurchase() public {
 
-        require(msg.sender == address(purchaseAndSaleContract));
+        require(msg.sender == address(purchaseContract));
 
-        if (purchaseAndSaleContract.hasBeenQualified() && purchaseAndSaleContract.qualification() == true) {
-            transferOwnership(purchaseAndSaleContract.seller(), purchaseAndSaleContract.buyer());
+        if (purchaseContract.hasBeenQualified() && purchaseContract.qualification() == true) {
+            transferOwnership(purchaseContract.getSeller(), purchaseContract.getBuyer());
         } 
 
-        purchaseAndSaleContract = PurchaseAndSale(0); 
+        purchaseContract = PurchaseContract(0); 
     }
 
     function transferOwnership(address currentOwner, address newOwner) internal  {

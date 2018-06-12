@@ -13,11 +13,11 @@
         </form>
   </div>
 
-  <div id="paymentSignal">
+  <div id="earnestMoney">
       <h1>Realizar el pago y señal</h1>
-    <form #paySignalForm="ngForm" (ngSubmit)="paySignal(payment.value); paySignalForm.resetForm()" novalidate>
+    <form #earnestMoneyForm="ngForm" (ngSubmit)="paySignal(earnestMoney.value); earnestMoneyForm.resetForm()" novalidate>
       <div class="form-group">
-          <input class="form-control" name="paymentSignal" ngModel required #payment="ngModel"> 
+          <input class="form-control" name="earnestMoney" ngModel required #earnestMoney="ngModel"> 
       </div>
       <button class="btn btn-dark">Añadir</button>
     </form>

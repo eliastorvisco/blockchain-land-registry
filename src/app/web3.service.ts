@@ -4,6 +4,7 @@ import { User } from '../utils/User';
 import { Property } from '../utils/Property';
 import { LandRegistry } from '../utils/LandRegistry';
 import { Purchase } from '../utils/Purchase';
+import { PurchaseAndSale } from '../utils/PurchaseAndSale';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 const Web3 = require('web3');
@@ -15,6 +16,8 @@ const euroTokenArtifacts = require('../../truffle/build/contracts/EuroToken.json
 const propertyArtifacts = require('../../truffle/build/contracts/Property.json');
 const purchaseContractArtifacts = require('../../truffle/build/contracts/PurchaseContract.json');
 const publicFinanceArtifacts = require('../../truffle/build/contracts/PublicFinance.json');
+const purchaseAndSaleArtifacts = require('../../truffle/build/contracts/PurchaseAndSale.json');
+
 @Injectable({
   providedIn: 'root'
 })
@@ -26,6 +29,7 @@ export class Web3Service implements OnInit {
   EuroToken = contract(euroTokenArtifacts);
   PropertyContract = contract(propertyArtifacts);
   PurchaseContract = contract(purchaseContractArtifacts);
+  PurchaseAndSaleContract = contract(purchaseAndSaleArtifacts);
   PublicFinance = contract(publicFinanceArtifacts);
 
   web3: any;
@@ -103,6 +107,11 @@ export class Web3Service implements OnInit {
       gas: 6721975,
       gasPrice: 20000000000
     });
+    this.PurchaseAndSaleContract.setProvider(this.web3.currentProvider);
+    this.PurchaseAndSaleContract.defaults({
+      gas: 6721975,
+      gasPrice: 20000000000
+    });
   }
 
   async setAccounts() {
@@ -127,6 +136,8 @@ export class Web3Service implements OnInit {
   async setContracts() {
     
     this.euroTokenBanking = await this.EuroTokenBanking.new({from: this.manager.address});
+    await this.euroTokenBanking.cashIn(this.seller.address, 2000000000, {from: this.manager.address});
+    await this.euroTokenBanking.cashIn(this.buyer.address, 2000000000, {from: this.manager.address});
     this.euroToken = await this.EuroToken.at(
       await this.euroTokenBanking.euroToken.call({from: this.manager.address})
     , {from: this.manager.address});
@@ -226,77 +237,151 @@ export class Web3Service implements OnInit {
     );  
   }
 
-  async createPurchaseContract(property, buyer, price, paymentSignal, caller = this.selectedUserSource.value.address) {
+
+  // Purchase Contract
+
+  async createPurchaseAndSaleContract(property, buyer, price, paymentSignal, caller = this.selectedUserSource.value.address) {
 
     let propertyInstance = await this.PropertyContract.at(property, {from: caller}); 
-    let purchaseContractInstance = await this.PurchaseContract.new(property, buyer, price, paymentSignal, {from: caller});
-    await propertyInstance.setPurchaseContract(purchaseContractInstance.address, {from: caller});
-
-    let buyerPaid = await purchaseContractInstance.getBuyerPaymentStatus({from:caller});
+    let purchaseAndSale = await this.PurchaseAndSaleContract.new(property, buyer, price, paymentSignal, {from: caller});
+    await propertyInstance.setPurchaseAndSaleContract(purchaseAndSale.address, {from: caller});
     
   }
 
-  async getPurchaseContract(address, caller = this.selectedUserSource.value.address): Promise<Purchase> {
-    let purchaseContractInstance = await this.PurchaseContract.at(address, {from: caller});
-    let purchaseContract = new Purchase(
-      address, 
-      await this.getProperty(await purchaseContractInstance.property.call({from: caller})),
-      await purchaseContractInstance.price.call({from: caller})
+  async getPurchaseAndSaleContract(address, caller = this.selectedUserSource.value.address): Promise<PurchaseAndSale> {
+    let purchaseAndSaleContract = await this.PurchaseAndSaleContract.at(address, {from: caller});
+    let purchaseAndSaleInfo = await purchaseAndSaleContract.getPurchaseAndSaleInfo({from: caller});
+
+    let purchaseAndSaleObject = new PurchaseAndSale(
+      purchaseAndSaleInfo[0],
+      purchaseAndSaleInfo[1],
+      purchaseAndSaleInfo[2],
+      purchaseAndSaleInfo[3].toNumber(),
+      purchaseAndSaleInfo[4].toNumber(),
+      purchaseAndSaleInfo[5].toNumber(),
+      purchaseAndSaleInfo[6],
+      purchaseAndSaleInfo[7],
+      purchaseAndSaleInfo[8],
+      purchaseAndSaleInfo[9],
+      purchaseAndSaleInfo[10]
     );
 
-    purchaseContract.setPhase((await purchaseContractInstance.phase.call({from: caller})).toNumber());
-    purchaseContract.setHash(await purchaseContractInstance.contractHash.call({from: caller}));
-    purchaseContract.setQualification(await purchaseContractInstance.qualification.call({from: caller}));
-    purchaseContract.setCanceller(await purchaseContractInstance.canceller.call({from: caller}));
-    purchaseContract.setNotary(await purchaseContractInstance.notary.call({from: caller}));
-    purchaseContract.setPaymentSignal(await purchaseContractInstance.paymentSignal.call({from: caller}));
-    
-
-
-    let buyerInfo = await purchaseContractInstance.getBuyerInfo({from: caller});
-    purchaseContract.setBuyer(
+    let buyerPaymentRecipients = await purchaseAndSaleContract.getSignerPaymentRecipients(purchaseAndSaleObject.buyer, {from: caller});
+    let debtsPromise =  buyerPaymentRecipients.map(async recipient => {
+        let res = await purchaseAndSaleContract.getSignerDueWith(purchaseAndSaleObject.buyer, recipient, {from: caller});
+        return res.toNumber();
+    });
+    let buyerDebts = await Promise.all(debtsPromise);
+    let buyerInfo = await purchaseAndSaleContract.getSignerInfo(purchaseAndSaleObject.buyer, {from: caller});
+    purchaseAndSaleObject.setBuyerInfo(
       buyerInfo[0],
       buyerInfo[1],
-      buyerInfo[2]
+      buyerInfo[2].toNumber(),
+      buyerInfo[3].toNumber(),
+      buyerInfo[4].toNumber(),
+      buyerInfo[5],
+      buyerPaymentRecipients,
+      buyerDebts
+      
     );
 
-    let sellerInfo = await purchaseContractInstance.getSellerInfo({from: caller});
-    purchaseContract.setSeller(
+    let sellerPaymentRecipients = await purchaseAndSaleContract.getSignerPaymentRecipients(purchaseAndSaleObject.seller, {from: caller});
+    debtsPromise =  sellerPaymentRecipients.map(async recipient => {
+        let res = await purchaseAndSaleContract.getSignerDueWith(purchaseAndSaleObject.buyer, recipient, {from: caller});
+        return res.toNumber();
+    });
+    let sellerDebts = await Promise.all(debtsPromise);
+    let sellerInfo = await purchaseAndSaleContract.getSignerInfo(purchaseAndSaleObject.seller, {from: caller});
+    purchaseAndSaleObject.setSellerInfo(
       sellerInfo[0],
       sellerInfo[1],
-      sellerInfo[2]
+      sellerInfo[2].toNumber(),
+      sellerInfo[3].toNumber(),
+      sellerInfo[4].toNumber(),
+      sellerInfo[5],
+      sellerPaymentRecipients,
+      sellerDebts
+      
     );
 
-    let buyerPaid = await purchaseContractInstance.getBuyerPaymentStatus({from:caller});
+    return purchaseAndSaleObject;
+  }
 
-    purchaseContract.setBuyerPaid(buyerPaid[0], buyerPaid[1]);
-    let sellerPaid = await purchaseContractInstance.getSellerPaymentStatus({from: caller});
-    purchaseContract.setSellerPaid(sellerPaid[0], sellerPaid[1]);
+  async addNotary(address, notary, caller = this.selectedUserSource.value.address) {
+    let purchaseAndSaleContract = await this.PurchaseAndSaleContract.at(address, {from: caller});
+    await purchaseAndSaleContract.addNotary(notary, {from: caller});
+  }
 
-    let debtDests = await purchaseContractInstance.getBuyerDebtDestinataries({from: caller});
-    
-    let debtsPromise =  debtDests.map(async destinatary => {
-        let res = await purchaseContractInstance.getBuyerDebtWith(destinatary, {from: caller});
-        return res.toNumber();
-    });
+  async payEarnestMoney(address, quantity, caller = this.selectedUserSource.value.address): Promise<boolean>{
+    try {
+      let purchaseAndSaleContract = await this.PurchaseAndSaleContract.at(address, {from: caller});
+      console.log('Paying: ', quantity);
+      await this.euroToken.approve(purchaseAndSaleContract.address, quantity, {from: caller})
+      console.log('Approved: ', await this.euroToken.allowance(caller, purchaseAndSaleContract.address, {from: caller}));
+      await purchaseAndSaleContract.payEarnestMoney({from: caller});
+      let paid = (await purchaseAndSaleContract.getSignerInfo(caller, {from: caller}))[2].toNumber();
+      console.log('Really Paid: ', paid);
+      return true;
+    } catch (err) {
+      console.log(err);
+      return false;
+    }
+  }
 
-    let debts = await Promise.all(debtsPromise);
+  async setPurchaseAndSaleContractHash(address, hash, caller = this.selectedUserSource.value.address): Promise<boolean> {
+    try {
+      let purchaseAndSaleContract = await this.PurchaseAndSaleContract.at(address, {from: caller});
+      await purchaseAndSaleContract.setPurchaseAndSaleContractHash(hash, {from: caller});
+      return true;
+    } catch(err) {
+      console.log(err);
+      return false;
+    }
+  }
 
-    purchaseContract.setBuyerDebts(debtDests, debts);
+  async validatePurchaseAndSaleContractHash(address, hash, caller = this.selectedUserSource.value.address): Promise<boolean> {
+    try {
+      let purchaseAndSaleContract = await this.PurchaseAndSaleContract.at(address, {from: caller});
+      await purchaseAndSaleContract.validatePurchaseAndSaleContractHash(hash, {from: caller});
+      return true;
+    } catch(err) {
+      console.log(err);
+      return false;
+    }
+  }
 
-    debtDests = await purchaseContractInstance.getSellerDebtDestinataries({from: caller});
-    debtsPromise =  debtDests.map(async destinatary => {
-        let res = await purchaseContractInstance.getSellerDebtWith(destinatary, {from: caller});
-        return res.toNumber();
-    });
+  async payOutstandingPayments(address, quantity, caller = this.selectedUserSource.value.address): Promise<boolean>{
+    try {
+      let purchaseAndSaleContract = await this.PurchaseAndSaleContract.at(address, {from: caller});
+      console.log('Paying: ', quantity);
+      await this.euroToken.approve(purchaseAndSaleContract.address, quantity, {from: caller})
+      console.log('Approved: ', await this.euroToken.allowance(caller, purchaseAndSaleContract.address, {from: caller}));
+      await purchaseAndSaleContract.payOutstandingPayments({from: caller});
+      let paid = (await purchaseAndSaleContract.getSignerInfo(caller, {from: caller}))[4].toNumber();
+      console.log('Really Paid: ', paid);
+      return true;
+    } catch (err) {
+      console.log(err);
+      return false;
+    }
+  }
 
+  // async setContract(address, hash, caller = this.selectedUserSource.value.address) {
+  //   let purchaseContract = await this.PurchaseContract.at(address, {from: caller});
+  //   await purchaseContract.setContractHash(hash, {from: caller});
+  // }
 
+  // async validateContract(address, hash, caller = this.selectedUserSource.value.address) {
+  //   let purchaseContract = await this.PurchaseContract.at(address, {from: caller});
+  //   await purchaseContract.validateContractDocument(hash, {from: caller});
+  // }
 
-    debts = await Promise.all(debtsPromise);
+  // async pay(address, payment, caller = this.selectedUserSource.value.address) {
+  //   console.log(payment);
+  // }
 
-    purchaseContract.setSellerDebts(debtDests, debts);
-
-    return purchaseContract;
+  sign() {
+    console.log('Signed!');
   }
 
 }

@@ -51,6 +51,7 @@ export class LandRegistryComponent implements OnInit {
       console.log('Nueva Propiedad: ', newProperty.address);
       await this.web3.landRegistry.register(newProperty.address, 2345, 'Nueva Inscripcion', this.model.owner, {from: this.user.address});
     } catch(err) {
+      console.log(err);
       this.error = 'Could not create or register the property';
       setTimeout(() => { 
         this.error = ""; 
