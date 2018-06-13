@@ -14,6 +14,8 @@ import { FormControl, FormGroup } from '@angular/forms';
 })
 export class PropertyComponent implements OnInit {
 
+  nav:number = 0;
+
   address:any;
   property: Property;
   landRegistry: LandRegistry;
@@ -34,7 +36,7 @@ export class PropertyComponent implements OnInit {
   ngOnInit() {
     let address = this.route.snapshot.paramMap.get('address');
     this.userSubscription = this.web3Service.selectedUser.subscribe(
-      user => {this.user = user; console.log('PropertyComponent User: ', this.user.address.toLowerCase())},
+      user => {this.user = user; if(this.property != undefined && this.user.address!= this.property.owner && this.nav == 2) this.nav = 0;},
       err => {console.log(err);}
     );
     this.updateProperty(address);
@@ -68,4 +70,16 @@ export class PropertyComponent implements OnInit {
   openPurchaseContract() {
     if (parseInt(this.property.purchaseContract) != 0) this.router.navigate(['purchase-contract', this.property.purchaseContract]);
   }
+
+  navigate(nav) {
+    this.nav = nav;
+  }
+
+  hasPurchaseAndSaleContractAttached() {
+    if(this.property != undefined)
+      return(parseInt(this.property.purchaseContract) != 0);
+    else 
+      return false;
+  }
+
 }

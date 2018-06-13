@@ -1,75 +1,78 @@
-<ul class="nav nav-pills nav-fill">
-    <li class="nav-item">
-      <a class="nav-link hover" [ngClass]="{'active btn btn-dark': page==0}" (click)="changePage(0)">Ver Propiedades</a>
-    </li>
-    <li class="nav-item hover ">
-      <a class="nav-link" [ngClass]="{'active btn btn-dark': page==1}" (click)="changePage(1)">Crear Propiedad</a>
-    </li>
-    <li class="nav-item hover">
-      <a class="nav-link" [ngClass]="{'active btn btn-dark': page==2}" (click)="changePage(2)">Crear Asiento</a>
-    </li>
-  </ul>
 
-  <div *ngIf="error"  class="alert alert-danger display-none" id="add-item-error">
-    {{error}}
-  </div>
 
-  <div *ngIf="page==0">
-      <h1>Properties Registered</h1>
-
-      <table class="table table-hover">
-          <thead class="thead-dark">
-            <tr>
-              <th scope="col">IDUFIR</th>
-              <th scope="col">CRU</th>
-              <th scope="col">Address</th>
-              <th scope="col">Description</th>
-              <th scope="col">Owner</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let property of web3.properties; let i = index" (click)=openProperty(property.address)>
-              <td>{{property.IDUFIR}}</td>
-              <td>{{property.CRU}}</td>
-              <td style="width: 50px; overflow: hidden;text-overflow:ellipsis;">{{property.address}}</td>
-              <td>{{property.description}}</td>
-              <td>{{property.owner}}</td>
-            </tr>
-          </tbody>
-        </table>
-  </div>
-
-  <div *ngIf="page==1">
-      <div class="container-fluid">
-          <h1>Creación de una Propiedad</h1>
-          <form #propertyForm="ngForm">
-            <div class="form-group">
-              <label for="idufir">IDUFIR</label>
-              <input type="text" class="form-control" id="idufir" required [(ngModel)]="model.IDUFIR" name="idufir">
-            </div>
-
-            <div class="form-group">
-              <label for="cru">CRU</label>
-              <input type="text" class="form-control" id="cru" required [(ngModel)]="model.CRU" name="cru">
-            </div>
-
-            <div class="form-group">
-              <label for="description">Description</label>
-              <input type="text" class="form-control" id="description" required [(ngModel)]="model.description" name="description">
-            </div>
-       
-            <div class="form-group">
-              <label for="owner">Owner</label>
-              <input type="text" class="form-control" id="owner" required [(ngModel)]="model.owner" name="owner">
-            </div>
-            
-       
-            <button type="submit" class="btn btn-dark" (click)="newProperty(); propertyForm.reset()">Submit</button>
-       
-          </form>
+  
+  <div class="jumbotron" style="background: rgba(255, 255, 255, 0.5); height: 90vh">
+      <ul class="nav nav-pills nav-fill">
+          <li class="nav-item">
+            <a class="nav-link hover" [ngClass]="{'active btn btn-dark': page==0}" (click)="changePage(0)">Ver Propiedades</a>
+          </li>
+          <li class="nav-item hover ">
+            <a class="nav-link" [ngClass]="{'active btn btn-dark': page==1}" (click)="changePage(1)">Crear Propiedad</a>
+          </li>
+          <li class="nav-item hover">
+            <a class="nav-link" [ngClass]="{'active btn btn-dark': page==2}" (click)="changePage(2)">Crear Asiento</a>
+          </li>
+        </ul>
+      <div *ngIf="page==0">
+          <h1>Properties Registered</h1>
+    
+          <table class="table table-hover">
+              <thead class="thead-dark">
+                <tr>
+                  <th scope="col">IDUFIR</th>
+                  <th scope="col">CRU</th>
+                  <th scope="col">Address</th>
+                  <th scope="col">Owner</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let property of web3.properties; let i = index" (click)=openProperty(property.address)>
+                  <td>{{property.IDUFIR}}</td>
+                  <td>{{property.CRU}}</td>
+                  <td style="width: 50px; overflow: hidden;text-overflow:ellipsis;">{{property.address}}</td>
+                  <td>{{property.owner}}</td>
+                </tr>
+              </tbody>
+            </table>
+      </div>
+    
+      <div *ngIf="page==1">
+          <div class="container-fluid">
+              <h1>Creación de una Propiedad</h1>
+              <form #propertyForm="ngForm">
+                <div class="form-group">
+                  <label for="idufir">IDUFIR</label>
+                  <input type="text" class="form-control" id="idufir" required [(ngModel)]="model.IDUFIR" name="idufir">
+                </div>
+    
+                <div class="form-group">
+                  <label for="cru">CRU</label>
+                  <input type="text" class="form-control" id="cru" required [(ngModel)]="model.CRU" name="cru">
+                </div>
+    
+                <div class="form-group">
+                  <label for="description">Description</label>
+                  <input type="text" class="form-control" id="description" required [(ngModel)]="model.description" name="description">
+                </div>
+           
+                <div class="form-group">
+                  <label for="owner">Owner</label>
+                  <input type="text" class="form-control" id="owner" required [(ngModel)]="model.owner" name="owner">
+                </div>
+                
+           
+                <button type="submit" class="btn btn-dark" (click)="newProperty(); propertyForm.reset()">Submit</button>
+           
+              </form>
+          </div>
+      </div>
+    
+      <div *ngIf="page==2">
+        <h1>The League of Legends</h1>
+      </div>
+    
+      <div *ngIf="error"  class="alert alert-danger display-none" id="add-item-error">
+        {{error}}
       </div>
   </div>
-
-  <div *ngIf="page==2">
-    <h1>The League of Legends</h1>
-  </div>
+  

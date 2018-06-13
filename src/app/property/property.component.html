@@ -1,37 +1,64 @@
-<div class="jumbotron">
-  <h1 class="display-4">Propiedad</h1>
-  <p class="lead">{{property?.IDUFIR}}, {{property?.address}}</p>
-  <hr class="my-4">
-  <a class="lead" (click)="openPurchaseContract()">{{property?.purchaseContract}}</a>
-  <p class="lead">
-    <a class="btn btn-primary btn-lg" role="button" (click)="updateProperty()">Learn more</a>
-  </p>
+<div class="jumbotron" style="background: rgba(255, 255, 255, 0.5);">
+  
+      <h1 class="display-4">Propiedad <span class="badge badge-success" style="font-size: 25%">Registered</span></h1>
+      <h4>{{property?.address}}</h4>
+  
 
-  <div class="card" style="width: 18rem;" *ngIf="landRegistry?.registrar == user?.address.toLowerCase()">
-    <div class="card-body">
+  <div class="card ">
+    <div class="card-header">
+      <ul class="nav nav-tabs card-header-tabs">
+        <li class="nav-item">
+          <a class="nav-link" [ngClass]="{'active': nav==0}" (click)="navigate(0)">Información</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [ngClass]="{'active': nav==1}" (click)="navigate(1)">Registro de la Propiedad</a>
+        </li>
+        <li class="nav-item" *ngIf="property != undefined && user.address.toLowerCase() == property.owner && !hasPurchaseAndSaleContractAttached()">
+          <a class="nav-link" [ngClass]="{'active': nav==2}" (click)="navigate(2)">Compraventa</a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card-body" *ngIf="nav == 0">
+      <h5 class="card-title">Información de la Propiedad</h5>
+      <p class="card-text"><span class="badge badge-dark">IDUFIR</span> {{property?.IDUFIR}}</p>
+      <p class="card-text"><span class="badge badge-dark">CRU</span> {{property?.CRU}}</p>
+      <h6 class="card-title">Descripción</h6>
+      <p class="card-text">{{property?.description}}</p>
+      <hr class="my-4">
+      <p class="card-text"><span class="badge badge-dark">Propietario</span> {{property?.owner}}</p>
+      <a class="card-text" *ngIf="hasPurchaseAndSaleContractAttached()" (click)="openPurchaseContract()"><span class="badge badge-dark">Compraventa</span> {{property?.purchaseContract}}</a>
+    </div>
+
+    <div class="card-body" *ngIf="nav == 1">
       <h5 class="card-title">Registro de la Propiedad</h5>
       <h6 class="card-subtitle mb-2 text-muted">{{landRegistry?.address}}</h6>
-      <p class="card-text">{{landRegistry?.name}}</p>
+      <p class="card-text">Nombre:    {{landRegistry?.name}}</p>
+      <p class="card-text">Dirección: {{landRegistry?.street}}</p>
+      <p class="card-text">Provincia: {{landRegistry?.province}}</p>
+      <p class="card-text">Teléfono:  {{landRegistry?.telephone}}</p>
+      <p class="card-text">Fax:       {{landRegistry?.fax}}</p>
+      <p class="card-text">Email:     {{landRegistry?.registrar}}</p>
+      <hr class="my-4">
+      <p class="card-text"><span class="badge badge-dark">Registrador</span> {{landRegistry?.name}}</p>
+    </div>
+
+    <div class="card-body" *ngIf="nav == 2">
+      <form #propertyForm="ngForm" [formGroup]="purchaseForm" *ngIf="property?.owner == user?.address.toLowerCase()">
+        <div class="form-group">
+          <label for="precio">Precio</label>
+          <input type="text" class="form-control" id="precio" required formControlName="price" name="precio">
+        </div>
+        <div class="form-group">
+          <label for="comprador">Comprador</label>
+          <input type="text" class="form-control" id="comprador" required formControlName="buyer" name="comprador">
+        </div>
+        <div class="form-group">
+          <label for="paymentSignal">Pago y Señal</label>
+          <input type="text" class="form-control" id="paymentSignal" required formControlName="paymentSignal" name="paymentSignal">
+        </div>
+        <button type="submit" class="btn btn-dark" (click)="newPurchaseContract(); purchaseForm.reset(); navigate(0)">Submit</button>
+      </form>
     </div>
   </div>
-
-  <form #propertyForm="ngForm" [formGroup]="purchaseForm" *ngIf="property?.owner == user?.address.toLowerCase()">
-    <div class="form-group">
-      <label for="precio">Precio</label>
-      <input type="text" class="form-control" id="precio" required formControlName="price" name="precio">
-    </div>
-
-    <div class="form-group">
-      <label for="comprador">Comprador</label>
-      <input type="text" class="form-control" id="comprador" required formControlName="buyer" name="comprador">
-    </div>
-
-    <div class="form-group">
-      <label for="paymentSignal">Pago y Señal</label>
-      <input type="text" class="form-control" id="paymentSignal" required formControlName="paymentSignal" name="paymentSignal">
-    </div>
-
-    <button type="submit" class="btn btn-dark" (click)="newPurchaseContract(); purchaseForm.reset()">Submit</button>
-
-  </form>
 </div>

@@ -1,20 +1,22 @@
 <div class="jumbotron">
-  <h1>Contrato de Compraventa</h1>
-  <p class="lead">Fase: Inicialización</p>
-  <p class="lead">El comprador debe proponer un notario para poder avanzar a la siguiente fase.</p>
-  <hr class="my-4">
   
-  <div id="join">
-      <form #notaryForm="ngForm" (ngSubmit)="addNotary(notary.value); notaryForm.resetForm()" novalidate>
-          <div class="form-group">
-              <input class="form-control" name="notary" ngModel required #notary="ngModel"> 
-          </div>
-          <button class="btn btn-dark">Añadir</button>
-        </form>
+    <h1>Contrato de Compraventa</h1>
+
+  <div id="join" *ngIf="purchaseAndSale != undefined && purchaseAndSale.state == 0">
+    <p class="lead">Fase: {{state[purchaseAndSale?.state]}}}</p>
+    <p class="lead">{{stateDescription[purchaseAndSale?.state]}}</p>
+    <hr class="my-4">
+    <form #notaryForm="ngForm" (ngSubmit)="addNotary(notary.value); notaryForm.resetForm()" novalidate>
+      <div class="form-group">
+          <input class="form-control" name="notary" ngModel required #notary="ngModel"> 
+      </div>
+      <button class="btn btn-dark">Añadir</button>
+    </form>
   </div>
 
-  <div id="earnestMoney">
-      <h1>Realizar el pago y señal</h1>
+  <div id="earnestMoney" *ngIf="purchaseAndSale != undefined && purchaseAndSale.state == 1">
+    <p class="lead">Fase: {{state[purchaseAndSale?.state]}}}</p>
+    <p class="lead">{{stateDescription[purchaseAndSale?.state]}}</p>
     <form #earnestMoneyForm="ngForm" (ngSubmit)="paySignal(earnestMoney.value); earnestMoneyForm.resetForm()" novalidate>
       <div class="form-group">
           <input class="form-control" name="earnestMoney" ngModel required #earnestMoney="ngModel"> 
@@ -23,8 +25,9 @@
     </form>
   </div>
 
-  <div id="writting">
-    <h1>Subir contrato</h1>
+  <div id="writting" *ngIf="purchaseAndSale != undefined && purchaseAndSale.state == 2">
+    <p class="lead">Fase: {{state[purchaseAndSale?.state]}}}</p>
+    <p class="lead">{{stateDescription[purchaseAndSale?.state]}}</p>
     <form #f="ngForm" (ngSubmit)="setContract(); f.resetForm()" novalidate>
       <div class="form-group">
           <label for="contract">Introducir Contrato</label>
@@ -34,19 +37,21 @@
     </form>
   </div>
 
-  <div id="validating">
-      <h1>Validar contrato</h1>
-      <form #f="ngForm" (ngSubmit)="validateContract(); f.resetForm()" novalidate>
-        <div class="form-group">
-            <label for="contract">Introducir Contrato</label>
-            <input type="file" class="form-control-input" name="validation" (change)="handleFileInput($event.target.files)"> 
-        </div>
-        <button class="btn btn-dark">Añadir</button>
-      </form>
-    </div>
+  <div id="validating" *ngIf="purchaseAndSale != undefined && purchaseAndSale.state == 3">
+    <p class="lead">Fase: {{state[purchaseAndSale?.state]}}}</p>
+    <p class="lead">{{stateDescription[purchaseAndSale?.state]}}</p>
+    <form #f="ngForm" (ngSubmit)="validateContract(); f.resetForm()" novalidate>
+      <div class="form-group">
+          <label for="contract">Introducir Contrato</label>
+          <input type="file" class="form-control-input" name="validation" (change)="handleFileInput($event.target.files)"> 
+      </div>
+      <button class="btn btn-dark">Añadir</button>
+    </form>
+  </div>
 
-  <div id="payment">
-      <h1>Realizar el pago y señal</h1>
+  <div id="payment" *ngIf="purchaseAndSale != undefined && purchaseAndSale.state == 4">
+    <p class="lead">Fase: {{state[purchaseAndSale?.state]}}}</p>
+    <p class="lead">{{stateDescription[purchaseAndSale?.state]}}</p>
     <form #f="ngForm" (ngSubmit)="pay(payment.value); f.resetForm()" novalidate>
       <div class="form-group">
           <input class="form-control" name="payment" ngModel required #payment="ngModel"> 
@@ -55,10 +60,23 @@
     </form>
   </div>
 
-  <div id="signing">
-      <h1>Firmar</h1>
+  <div id="signing" *ngIf="purchaseAndSale != undefined && purchaseAndSale.state == 5">
+      <p class="lead">Fase: {{state[purchaseAndSale?.state]}}}</p>
+      <p class="lead">{{stateDescription[purchaseAndSale?.state]}}</p>
       <button class="btn btn-dark" (click)="sign()">Firmar</button>
   </div>
+
+  <div id="qualify" *ngIf="purchaseAndSale != undefined && purchaseAndSale.state == 6">
+    <p class="lead">Fase: {{state[purchaseAndSale?.state]}}}</p>
+    <p class="lead">{{stateDescription[purchaseAndSale?.state]}}</p>
+    <button class="btn btn-dark" (click)="qualify(true)">Aceptar</button>
+    <button class="btn btn-danger" (click)="qualify(false)">Denegar</button>
+  </div>
+
+  <div id="cancel">
+    <button class="btn btn-danger" (click)="cancel()">Cancelar</button>
+  </div>
+
 
 
 

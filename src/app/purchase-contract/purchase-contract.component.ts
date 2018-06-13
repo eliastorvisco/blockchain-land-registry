@@ -18,6 +18,31 @@ export class PurchaseContractComponent implements OnInit {
   address:any;
   purchaseAndSale: PurchaseAndSale;
 
+  state:string[] = [
+    'Inicialización',
+    'Paga y señal',
+    'Redacción del contrato de compraventa',
+    'Validación del contrato de compraventa',
+    'Pago de la vivienda e impuestos',
+    'Firma',
+    'Calificación',
+    'Contrato concluído',
+    'Cancelación'
+  ];
+
+  stateDescription:string[] = [
+    'El comprador deberá invitar a un notario, de su elección, para proseguir con la compraventa',
+    'Tanto comprador como vendedor deberán depositar una cantidad igual a la paga y señal fijada a la cuenta del contrato de compraventa',
+    'El notario deberá redactar el contrato de compraventa y subir un código único e identificativo del mismo a la blockchain', 
+    'Comprador y vendedor deberán validar el documento físico del contrato de compraventa a través de la copia del mismo que les haya proporcionado el notario',
+    'Comprador y vendedor deberán abonar las cantidades indicadas en la cuenta ethereum del contrato de compraventa',
+    'Comprador y vendedor deberán firmar para proceder con la tramitación de la compraventa. La firma del contrato supondrá la renuncia a la cancelación del mismo.',
+    'El registrador asignado al Registro de la Propiedad donde se inscribió la finca deberá calificar el contrato de compraventa.',
+    '',
+    'El contrato de compraventa ha sido cancelado.'
+    
+  ]
+
   // form notary
   fileReader: FileReader = new FileReader();
   fileToUpload: File = null;
@@ -44,9 +69,10 @@ export class PurchaseContractComponent implements OnInit {
     console.log(this.purchaseAndSale); 
   }
 
-  addNotary(notary) {
+  async addNotary(notary) {
     console.log(notary);
-    this.web3Service.addNotary(this.address, notary);
+    await this.web3Service.addNotary(this.address, notary);
+    this.updatePurchaseContract();
   }
   
   async paySignal(quantity) {
@@ -110,8 +136,23 @@ export class PurchaseContractComponent implements OnInit {
     this.updatePurchaseContract();
   }
 
-  sign() {
+  async sign() {
     console.log('Signed!');
+    await this.web3Service.sign(this.address);
+    this.updatePurchaseContract();
+  }
+
+  async cancel() {
+    console.log('Canceling...');
+    await this.web3Service.cancel(this.address);
+    this.updatePurchaseContract();
+  }
+
+  async qualify(qualification) {
+    console.log('Qualifying...');
+    console.log(qualification);
+    await this.web3Service.qualify(this.address, qualification);
+    this.updatePurchaseContract();
   }
 
 }

@@ -307,9 +307,15 @@ export class Web3Service implements OnInit {
     return purchaseAndSaleObject;
   }
 
-  async addNotary(address, notary, caller = this.selectedUserSource.value.address) {
-    let purchaseAndSaleContract = await this.PurchaseAndSaleContract.at(address, {from: caller});
-    await purchaseAndSaleContract.addNotary(notary, {from: caller});
+  async addNotary(address, notary, caller = this.selectedUserSource.value.address): Promise<boolean> {
+    try{
+      let purchaseAndSaleContract = await this.PurchaseAndSaleContract.at(address, {from: caller});
+      await purchaseAndSaleContract.addNotary(notary, {from: caller});
+      return true;
+    } catch(err) {
+      console.log(err);
+      return false;
+    }  
   }
 
   async payEarnestMoney(address, quantity, caller = this.selectedUserSource.value.address): Promise<boolean>{
@@ -366,22 +372,38 @@ export class Web3Service implements OnInit {
     }
   }
 
-  // async setContract(address, hash, caller = this.selectedUserSource.value.address) {
-  //   let purchaseContract = await this.PurchaseContract.at(address, {from: caller});
-  //   await purchaseContract.setContractHash(hash, {from: caller});
-  // }
-
-  // async validateContract(address, hash, caller = this.selectedUserSource.value.address) {
-  //   let purchaseContract = await this.PurchaseContract.at(address, {from: caller});
-  //   await purchaseContract.validateContractDocument(hash, {from: caller});
-  // }
-
-  // async pay(address, payment, caller = this.selectedUserSource.value.address) {
-  //   console.log(payment);
-  // }
-
-  sign() {
-    console.log('Signed!');
+  async sign(address, caller = this.selectedUserSource.value.address): Promise<boolean> {
+    try {
+      let purchaseAndSaleContract = await this.PurchaseAndSaleContract.at(address, {from: caller});
+      purchaseAndSaleContract.sign({from: caller});
+      return true;
+    } catch(err) {
+      console.log(err);
+      return false;
+    }
   }
+
+  async qualify(address, qualification, caller = this.selectedUserSource.value.address): Promise<boolean> {
+    try {
+      let purchaseAndSaleContract = await this.PurchaseAndSaleContract.at(address, {from: caller});
+      purchaseAndSaleContract.qualify(qualification, {from: caller});
+      return true;
+    } catch(err) {
+      console.log(err);
+      return false;
+    }
+  }
+
+  async cancel(address, caller = this.selectedUserSource.value.address): Promise<boolean> {
+    try {
+      let purchaseAndSaleContract = await this.PurchaseAndSaleContract.at(address, {from: caller});
+      purchaseAndSaleContract.cancel({from: caller});
+      return true;
+    } catch(err) {
+      console.log(err);
+      return false;
+    }
+  }
+  
 
 }
