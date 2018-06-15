@@ -39,6 +39,17 @@ export class PurchaseAndSale {
     setSellerInfo(validated, signed, earnestMoneyPaid, totalDue, totalPaid, paymentRecipients, debts, canceled) {
         this.sellerInfo = new SignerInfo(validated, signed, earnestMoneyPaid, totalDue, totalPaid, paymentRecipients, debts, canceled);
     }
+
+    // Getters
+    hasContractHash():boolean {
+        return (this.purchaseAndSaleContractHash != "");
+    }
+
+    getCanceller():any {
+        if (this.buyerInfo.canceled) return this.buyer;
+        else if (this.sellerInfo.canceled) return this.seller;
+        else return this.notary;
+    }
 }
 
 class SignerInfo {

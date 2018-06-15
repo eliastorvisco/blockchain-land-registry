@@ -45,7 +45,7 @@
     padding: 0px;
 
     background-image: url('http://s22427.pcdn.co/wp-content/uploads/2015/04/black-and-white-dubai-19161.jpg');
-    background-size: auto 100%;
+    background-size: 100% auto;
   }
   
   #wrapper.toggled #page-content-wrapper {

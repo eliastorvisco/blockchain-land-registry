@@ -1,4 +1,4 @@
-<div class="jumbotron" style="background: rgba(255, 255, 255, 0.5);">
+<div class="jumbotron" style="background: rgba(255, 255, 255, 0.5); overflow: scroll;">
   
       <h1 class="display-4">Propiedad <span class="badge badge-success" style="font-size: 25%">Registered</span></h1>
       <h4>{{property?.address}}</h4>
@@ -38,9 +38,9 @@
       <p class="card-text">Provincia: {{landRegistry?.province}}</p>
       <p class="card-text">Teléfono:  {{landRegistry?.telephone}}</p>
       <p class="card-text">Fax:       {{landRegistry?.fax}}</p>
-      <p class="card-text">Email:     {{landRegistry?.registrar}}</p>
+      <p class="card-text">Email:     {{landRegistry?.email}}</p>
       <hr class="my-4">
-      <p class="card-text"><span class="badge badge-dark">Registrador</span> {{landRegistry?.name}}</p>
+      <p class="card-text"><span class="badge badge-dark">Registrador</span> {{landRegistry?.registrar}}</p>
     </div>
 
     <div class="card-body" *ngIf="nav == 2">

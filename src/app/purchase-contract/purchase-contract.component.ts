@@ -40,15 +40,19 @@ export class PurchaseContractComponent implements OnInit {
     'El registrador asignado al Registro de la Propiedad donde se inscribió la finca deberá calificar el contrato de compraventa.',
     '',
     'El contrato de compraventa ha sido cancelado.'
-    
+  ]
+
+  cancelationWarning:string[] = [
+    'La cancelación puede realizarse tanto por el comprador y vendedor como por el notario. Cualquier pago realizado será devuelto.',
+    'En el caso de que la cancelación se realice por parte del comprador o del vendedor, éste perderá la paga y señal y se devolverá las otras cantidades abonadas. En el caso de que quién cancele sea el notario se abonara la totalidad de los pagos realizados, incluidos la paga y señal.'
   ]
 
   // form notary
-  fileReader: FileReader = new FileReader();
   fileToUpload: File = null;
-  fileToUploadFromNotary: File = null;
 
   ipfs = new IPFS({host: 'ipfs.infura.io', port: 5001, protocol: 'https'});
+
+  nav: number = 0;
 
   constructor(public router:Router, private route: ActivatedRoute, private web3Service: Web3Service) { }
 
@@ -56,12 +60,27 @@ export class PurchaseContractComponent implements OnInit {
     let address = this.route.snapshot.paramMap.get('address');
     this.address = address;
     this.updatePurchaseContract(address);
-
-
   }
 
   ngOnDestroy() {
 
+  }
+
+  navigate(nav) {
+    this.nav = nav;
+  }
+
+  getNameFromAccount(address):string {
+    if(this.purchaseAndSale == undefined) return "";
+    if (address == this.purchaseAndSale.buyer) return "Comprador";
+    else if (address == this.purchaseAndSale.seller) return "Vendedor";
+    else if (address == this.purchaseAndSale.notary) return "Notario";
+    else if (address == this.purchaseAndSale.publicFinance) return "Hacienda";
+
+  }
+
+  isState(state): boolean {
+    return (this.purchaseAndSale != undefined && this.purchaseAndSale.state == state);
   }
 
   async updatePurchaseContract(address = this.address) {

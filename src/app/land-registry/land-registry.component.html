@@ -21,8 +21,8 @@
                 <tr>
                   <th scope="col">IDUFIR</th>
                   <th scope="col">CRU</th>
-                  <th scope="col">Address</th>
-                  <th scope="col">Owner</th>
+                  <th scope="col">Dirección Ethereum</th>
+                  <th scope="col">Propietario</th>
                 </tr>
               </thead>
               <tbody>
@@ -30,7 +30,7 @@
                   <td>{{property.IDUFIR}}</td>
                   <td>{{property.CRU}}</td>
                   <td style="width: 50px; overflow: hidden;text-overflow:ellipsis;">{{property.address}}</td>
-                  <td>{{property.owner}}</td>
+                  <td style="width: 50px; overflow: hidden;text-overflow:ellipsis;">{{property.owner}}</td>
                 </tr>
               </tbody>
             </table>
@@ -41,22 +41,22 @@
               <h1>Creación de una Propiedad</h1>
               <form #propertyForm="ngForm">
                 <div class="form-group">
-                  <label for="idufir">IDUFIR</label>
+                  <h6 for="idufir">IDUFIR</h6>
                   <input type="text" class="form-control" id="idufir" required [(ngModel)]="model.IDUFIR" name="idufir">
                 </div>
     
                 <div class="form-group">
-                  <label for="cru">CRU</label>
+                  <h6 for="cru">CRU</h6>
                   <input type="text" class="form-control" id="cru" required [(ngModel)]="model.CRU" name="cru">
                 </div>
     
                 <div class="form-group">
-                  <label for="description">Description</label>
+                  <h6 for="description">Descripción</h6>
                   <input type="text" class="form-control" id="description" required [(ngModel)]="model.description" name="description">
                 </div>
            
                 <div class="form-group">
-                  <label for="owner">Owner</label>
+                  <h6 for="owner">Propietario</h6>
                   <input type="text" class="form-control" id="owner" required [(ngModel)]="model.owner" name="owner">
                 </div>
                 
