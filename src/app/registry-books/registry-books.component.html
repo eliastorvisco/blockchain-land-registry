@@ -1,0 +1,157 @@
+<div class="jumbotron" style="background: rgba(255, 255, 255, 0.5); height: 90vh;">
+  <ul class="nav nav-pills nav-fill mb-4">
+    <li class="nav-item">
+      <a class="nav-link hover" [ngClass]="{'active btn btn-dark': openedBook==0}" (click)="openBook(0)">Libro Diario</a>
+    </li>
+    <li class="nav-item hover ">
+      <a class="nav-link" [ngClass]="{'active btn btn-dark': openedBook==1}" (click)="openBook(1)">Libro de Inscripciones</a>
+    </li>
+    <li class="nav-item hover">
+      <a class="nav-link" [ngClass]="{'active btn btn-dark': openedBook==2}" (click)="openBook(2)">Crear Asiento</a>
+    </li>
+  </ul>
+
+  <div *ngIf="openedBook==0">
+      <div class="container-fluid w-100">
+        <form #f="ngForm" class="form-inline w-100" (ngSubmit)="filterPresentations(property.value, id.value)">
+          <div class="form-group my-2 mr-2" >
+            <input type="text" class="form-control"  #property placeholder="ETHID">
+          </div>
+          <div class="form-group my-2 mr-2">
+            <input type="text" class="form-control"  #id placeholder="Identificador">
+          </div>
+          <div class="form-group my-2 float-right">
+            <button type="submit" class="btn btn-dark">Filtrar</button>
+          </div> 
+        </form>
+      </div>
+      <div class="container-fluid">
+          <table class="table table-hover">
+            <thead class="thead-dark">
+              <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Link</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let presentationEntry of presentationEntries; let i = index">
+                <td>{{presentationEntry.identifier}}</td>
+                <td><a target="_blank" href="https://ipfs.io/ipfs/{{presentationEntry.document.ipfsHash}}" download>{{presentationEntry.document.ipfsHash}}</a></td>
+              </tr>
+            </tbody>
+          </table>
+      </div>
+    </div>
+
+  <div *ngIf="openedBook==1">
+    <div class="container-fluid w-100">
+      <form #f="ngForm" class="form-inline w-100" (ngSubmit)="filterInscriptions(property.value, type.value, id.value)">
+        <div class="form-group my-2 mr-2" >
+          <input type="text" class="form-control"  #property placeholder="ETHID">
+        </div>
+        <div class="form-group my-2 mr-2 input-group">
+
+          <select class="custom-select" id="inputGroupSelect01" #type>
+            <option selected value="-1">Todos</option>
+            <option value="0">Inscripción</option>
+            <option value="1">Cancelación</option>
+            <option value="2">Nota Marginal</option>
+          </select>
+        </div>
+        <div class="form-group my-2 mr-2">
+          <input type="text" class="form-control"  #id placeholder="Identificador">
+        </div>
+        <div class="form-group my-2 float-right">
+          <button type="submit" class="btn btn-dark">Filtrar</button>
+        </div> 
+      </form>
+    </div>
+    <div class="container-fluid">
+        <table class="table table-hover">
+          <thead class="thead-dark">
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Propiedad</th>
+              <th scope="col">Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let inscriptionEntry of inscriptionEntries; let i = index">
+              <td>{{inscriptionEntry.identifier}}</td>
+              <td>{{inscriptionEntry.type}}</td>
+              <td>{{inscriptionEntry.property}}</td>
+              <td><a target="_blank" href="https://ipfs.io/ipfs/{{inscriptionEntry.document.ipfsHash}}" download>{{inscriptionEntry.document.ipfsHash}}</a></td>
+            </tr>
+          </tbody>
+        </table>
+    </div>
+  </div>
+
+  <div *ngIf="openedBook==2">
+    <div class="card">
+      <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs">
+          <li class="nav-item">
+            <a class="nav-link" [ngClass]="{'active': newEntryNav==0}" (click)="openNewEntryNav(0)">Nuevo Asiento de Presentación</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" [ngClass]="{'active': newEntryNav==1}" (click)="openNewEntryNav(1)">Nuevo Asiento de Inscripción</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card-body" *ngIf="newEntryNav == 0">
+          <form #f="ngForm" (ngSubmit)="newPresentationEntry(id.value)">
+            
+            <div class="form-group my-2 mr-2">
+              <input type="text" class="form-control"  #id placeholder="Identificador" required>
+            </div>
+  
+            <div class="form-group my-2 mr-2">
+                <input type="file" class="form-control-input" name="contract" (change)="handleFileInput($event.target.files)"> 
+            </div>
+            
+            <div class="form-group my-2 float-right">
+              <button type="submit" class="btn btn-dark">Inscribir</button>
+            </div> 
+          </form>
+        </div>
+
+      <div class="card-body" *ngIf="newEntryNav == 1">
+
+        <form #f="ngForm" (ngSubmit)="newInscriptionEntry(property.value, type.value, id.value)">
+          <div class="form-group my-2 mr-2 input-group">
+            <select class="custom-select" id="inputGroupSelect01" #type>
+              <option selected value="-1">Todos</option>
+              <option value="0">Inscripción</option>
+              <option value="1">Cancelación</option>
+              <option value="2">Nota Marginal</option>
+            </select>
+          </div>
+
+          <div class="form-group my-2 mr-2">
+            <input type="text" class="form-control"  #id placeholder="Identificador">
+          </div>
+
+          <div class="form-group my-2 mr-2" >
+            <input type="text" class="form-control"  #property placeholder="ETHID">
+          </div>
+
+          <div class="form-group my-2 mr-2">
+              <input type="file" class="form-control-input" name="contract" (change)="handleFileInput($event.target.files)" placeholder="Añadir archivo"> 
+          </div>
+          
+          <div class="form-group my-2 float-right">
+            <button type="submit" class="btn btn-dark">Inscribir</button>
+          </div> 
+
+        </form>
+
+      </div>
+
+    </div>
+    
+  </div>
+
+</div>

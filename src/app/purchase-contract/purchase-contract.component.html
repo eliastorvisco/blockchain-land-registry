@@ -13,7 +13,7 @@
         <li class="nav-item">
           <a class="nav-link" [ngClass]="{'active': nav==1}" (click)="navigate(1)">Operaciones</a>
         </li>
-        <li class="nav-item">
+        <li class="nav-item" *ngIf="purchaseAndSale?.state <= 5">
           <a class="nav-link" [ngClass]="{'active': nav==2}" (click)="navigate(2)">Cancelación</a>
         </li>
       </ul>
@@ -108,7 +108,7 @@
           </div>
         </div>
 
-        <div id="cancelation-info" *ngIf="isState(8)">
+        <div id="cancelation-info" *ngIf="isState(7)">
           Contrato realizado con exito. Transferencia de propiedad realizada.
         </div>
 

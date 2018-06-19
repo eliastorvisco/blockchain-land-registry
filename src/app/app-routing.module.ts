@@ -6,7 +6,9 @@ import { HomeComponent } from './home/home.component';
 import { LandRegistryComponent } from './land-registry/land-registry.component';
 import { PropertyComponent } from './property/property.component';
 import { PurchaseContractComponent } from './purchase-contract/purchase-contract.component';
-import { Purchase } from '../utils/Purchase';
+import { BankComponent } from './bank/bank.component';
+import { RegistryBooksComponent } from './registry-books/registry-books.component';
+
 
 
 const appRoutes: Routes = [
@@ -14,7 +16,9 @@ const appRoutes: Routes = [
     { path: 'land-registry', component: LandRegistryComponent },
     { path: 'home', component: HomeComponent },
     { path: 'property/:address', component: PropertyComponent },
-    { path: 'purchase-contract/:address', component: PurchaseContractComponent }
+    { path: 'purchase-contract/:address', component: PurchaseContractComponent },
+    { path: 'bank', component: BankComponent },
+    { path: 'registry-books', component: RegistryBooksComponent }
 ];
 
 @NgModule({

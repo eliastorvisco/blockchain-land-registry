@@ -8,6 +8,9 @@ import { AppRoutingModule } from './app-routing.module';
 import { LandRegistryComponent } from './land-registry/land-registry.component';
 import { PropertyComponent } from './property/property.component';
 import { PurchaseContractComponent } from './purchase-contract/purchase-contract.component';
+import { BankComponent } from './bank/bank.component';
+import { RegistryBooksComponent } from './registry-books/registry-books.component';
+import { NewDocumentComponent } from './new-document/new-document.component';
 
 
 
@@ -19,7 +22,10 @@ import { PurchaseContractComponent } from './purchase-contract/purchase-contract
     HomeComponent,
     LandRegistryComponent,
     PropertyComponent,
-    PurchaseContractComponent
+    PurchaseContractComponent,
+    BankComponent,
+    RegistryBooksComponent,
+    NewDocumentComponent
   ],
   imports: [
     BrowserModule,

@@ -17,16 +17,26 @@ export class LandRegistryComponent implements OnInit {
   model: Property = new Property('', '', '', '', '', '', '');
   user: User;
   userSubscription:any;
+  properties:Property[] = [];
+  event:any;
+
+  web3StatusSubscription:any;
 
   constructor(public router:Router, private web3: Web3Service) {
     
   }
 
   ngOnInit() {
+    this.web3StatusSubscription = this.web3.ready.subscribe(
+      ready => {if(ready) {this.listenPropertyRegistrationEvent({}, {fromBlock: 0});}},
+      err => {console.log(err);}
+    ); 
+    
     this.userSubscription = this.web3.selectedUser.subscribe(
-      selectedUser => {this.user = selectedUser; console.log('HELLO: ', selectedUser.name)}, 
+      selectedUser => {this.user = selectedUser;}, 
       err => {console.log('Something happened: ', err);
     });
+    
   }
 
   ngOnDestroy() {
@@ -49,7 +59,7 @@ export class LandRegistryComponent implements OnInit {
       );
   
       console.log('Nueva Propiedad: ', newProperty.address);
-      await this.web3.landRegistry.register(newProperty.address, 2345, 'Nueva Inscripcion', this.model.owner, {from: this.user.address});
+      await this.web3.landRegistry.register(newProperty.address, {from: this.user.address});
     } catch(err) {
       console.log(err);
       this.error = 'Could not create or register the property';
@@ -64,6 +74,27 @@ export class LandRegistryComponent implements OnInit {
     this.router.navigate(['property', property]);
     console.log(property);
   }
+
+  async listenPropertyRegistrationEvent(filters, options) {
+    this.properties = [];
+    this.event = this.web3.getPropertyRegistrationEvent(filters, options);
+    this.event.watch(async (err, res) => {
+      if (err) {return;}
+      let entry = res.args;
+      this.properties.push(await this.web3.getProperty(entry.property));
+    });
+  }
   
+  filter(IDUFIR, CRU, property) {
+    let filters = {
+      IDUFIR: IDUFIR,
+      CRU: CRU,
+      property:property
+    }
+    if (IDUFIR == "") delete filters.IDUFIR;
+    if (CRU == "") delete filters.CRU;
+    if (property == "") delete filters.property;
+    this.listenPropertyRegistrationEvent(filters, {fromBlock: 0});
+  } 
 
 }

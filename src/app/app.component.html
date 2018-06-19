@@ -14,15 +14,15 @@
               </li>
               <li class="sidebar-brand"><a (click)="open('/home')" style="color: white">Blockchain Land Registry</a></li>
               <li><a (click)="open('/land-registry')">Registro de Propiedades</a></li>
-              <li><a (click)="open('/diary-book')">Libro Diario</a></li>
-              <li><a (click)="open('/inscription-book')">Libro de Inscripciones</a></li>
-              <li><a (click)="open('/incapacitation-book')">Libro de Incapacitaciones</a></li>
+              <li><a (click)="open('/registry-books')">Libros Registrales</a></li>
               <li style="border-bottom: 1px solid #ddd !important; padding: 5px 0 5px 0;"></li>
               <li style="font-size: 15px; display: block; text-decoration: none; color: white;">Usuarios</li>
               <li><a (click)="selectUser('seller')" [style.text-decoration]="user == 'seller'? 'underline' : none" style="padding-left: 35px">Seller</a></li>
               <li><a (click)="selectUser('buyer')" [style.text-decoration]="user == 'buyer'? 'underline' : none" style="padding-left: 35px">Buyer</a></li>
               <li><a (click)="selectUser('notary')" [style.text-decoration]="user == 'notary'? 'underline' : none" style="padding-left: 35px">Notary</a></li>
               <li><a (click)="selectUser('registrar')" [style.text-decoration]="user == 'registrar'? 'underline' : none" style="padding-left: 35px" >Registrar</a></li> 
+              <li style="border-bottom: 1px solid #ddd !important; padding: 5px 0 5px 0;"></li>
+              <li><a (click)="open('/bank')">Banco</a></li>
             </ul>
           </div>
       </div>

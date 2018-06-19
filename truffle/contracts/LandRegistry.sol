@@ -9,10 +9,9 @@ contract LandRegistry is MultiAdmin {
     enum InscriptionType { Inscription, Cancelation, MarginalNote }
 
     event PropertyCreated(address property);
-    event DiaryBook(uint identifier, string description, address document, address registrar);
-    event InscriptionBook(InscriptionType inscriptionType, address property, uint identifier, string description, address document);
-    event IncapacitationBook(address subject, uint identifier, string description, address document);
-    event PropertyRegistration(uint indexed IDUFIR, uint indexed CRU, bool firstRegistration, address property, address owner);
+    event DiaryBook(uint indexed identifier, address document, address registrar);
+    event InscriptionBook(uint indexed identifier, uint indexed inscriptionType, address indexed property, address document, address registrar);
+    event PropertyRegistration(uint indexed IDUFIR, uint indexed CRU, bool firstRegistration, address indexed property, address owner, address registrar);
 
     string public name;
     string public addressInfo; // Street - Town [Postcode]
@@ -58,27 +57,15 @@ contract LandRegistry is MultiAdmin {
         registrar = _registrar;
     }
 
-    function addPresentationEntry(uint identifier, string description, address document) public onlyRegistrar {
-        emit DiaryBook(identifier, description, document, registrar);
+    function addPresentationEntry(uint identifier, address document) public onlyRegistrar {
+        emit DiaryBook(identifier, document, registrar);
     }
 
-    function addInscriptionEntry(address property, uint identifier, string description, address document) public onlyRegistrar {
-        emit InscriptionBook(InscriptionType.Inscription, property, identifier, description, document);
+    function addInscriptionEntry(uint identifier, uint inscriptionType, address property, address document) public onlyRegistrar {
+        emit InscriptionBook(identifier, inscriptionType, property, document, registrar);
     }
 
-    function addCancelationEntry(address property, uint identifier, string description, address document) public onlyRegistrar {
-        emit InscriptionBook(InscriptionType.Cancelation, property, identifier, description, document);
-    }
-
-    function addMarginalNoteEntry(address property, uint identifier, string description, address document) public onlyRegistrar {
-        emit InscriptionBook(InscriptionType.MarginalNote, property, identifier, description, document);
-    }
-
-    function addIncapacitationEntry(address subject, uint identifier, string description, address document) public onlyRegistrar {
-        emit IncapacitationBook(subject, identifier, description, document);
-    }
-
-    function register(address property, uint identifier, string description, address document) public onlyRegistrar {
+    function register(address property) public onlyRegistrar {
         Property newProperty = Property(property);
         require(newProperty.landRegistry() == address(this));
         bool firstRegistration = !isRegistered[property];
@@ -88,8 +75,7 @@ contract LandRegistry is MultiAdmin {
         (IDUFIR, CRU,, owner,,) = newProperty.getPropertyInfo();
 
         isRegistered[property] = true;
-        emit PropertyRegistration(IDUFIR, CRU, firstRegistration, property, owner);
-        addInscriptionEntry(property, identifier, description, document);
+        emit PropertyRegistration(IDUFIR, CRU, firstRegistration, property, owner, registrar);
     }
 
 

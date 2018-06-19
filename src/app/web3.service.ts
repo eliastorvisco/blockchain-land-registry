@@ -4,6 +4,7 @@ import { User } from '../utils/User';
 import { Property } from '../utils/Property';
 import { LandRegistry } from '../utils/LandRegistry';
 import { Purchase } from '../utils/Purchase';
+import { IPFSDocument } from '../utils/IPFSDocument'; 
 import { PurchaseAndSale } from '../utils/PurchaseAndSale';
 import { BehaviorSubject, Observable } from 'rxjs';
 
@@ -17,6 +18,7 @@ const propertyArtifacts = require('../../truffle/build/contracts/Property.json')
 const purchaseContractArtifacts = require('../../truffle/build/contracts/PurchaseContract.json');
 const publicFinanceArtifacts = require('../../truffle/build/contracts/PublicFinance.json');
 const purchaseAndSaleArtifacts = require('../../truffle/build/contracts/PurchaseAndSale.json');
+const documentArtifacts = require('../../truffle/build/contracts/Document.json');
 
 @Injectable({
   providedIn: 'root'
@@ -31,6 +33,7 @@ export class Web3Service implements OnInit {
   PurchaseContract = contract(purchaseContractArtifacts);
   PurchaseAndSaleContract = contract(purchaseAndSaleArtifacts);
   PublicFinance = contract(publicFinanceArtifacts);
+  DocumentContract = contract(documentArtifacts);
 
   web3: any;
   accounts: Account[] = [];
@@ -40,6 +43,9 @@ export class Web3Service implements OnInit {
   buyer: User;
   notary: User;
   registrar: User;
+
+  readySource = new BehaviorSubject<boolean>(false);
+  ready = this.readySource.asObservable();
 
   selectedUserSource = new BehaviorSubject<User>(new User('','',''));
   selectedUser = this.selectedUserSource.asObservable();
@@ -112,6 +118,11 @@ export class Web3Service implements OnInit {
       gas: 6721975,
       gasPrice: 20000000000
     });
+    this.DocumentContract.setProvider(this.web3.currentProvider);
+    this.DocumentContract.defaults({
+      gas: 6721975,
+      gasPrice: 20000000000
+    });
   }
 
   async setAccounts() {
@@ -123,6 +134,7 @@ export class Web3Service implements OnInit {
     }
     this.setUsers();
   }
+
   async setUsers() {
     this.manager = new User('Manager', this.accounts[0].address, this.accounts[0].balance);
     this.seller = new User('Seller', this.accounts[1].address, this.accounts[1].balance);
@@ -136,8 +148,8 @@ export class Web3Service implements OnInit {
   async setContracts() {
     
     this.euroTokenBanking = await this.EuroTokenBanking.new({from: this.manager.address});
-    await this.euroTokenBanking.cashIn(this.seller.address, 2000000000, {from: this.manager.address});
-    await this.euroTokenBanking.cashIn(this.buyer.address, 2000000000, {from: this.manager.address});
+    // await this.euroTokenBanking.cashIn(this.seller.address, 2000000000, {from: this.manager.address});
+    // await this.euroTokenBanking.cashIn(this.buyer.address, 2000000000, {from: this.manager.address});
     this.euroToken = await this.EuroToken.at(
       await this.euroTokenBanking.euroToken.call({from: this.manager.address})
     , {from: this.manager.address});
@@ -158,9 +170,7 @@ export class Web3Service implements OnInit {
     await this.landRegistry.setRegistrar(this.registrar.address, {from: this.manager.address});
     await this.landRegistry.setPublicFinance(this.publicFinance.address, {from: this.manager.address});
 
-
-  
-    this.listenPropertyRegistrations();
+    this.readySource.next(true);
   }
 
 
@@ -198,6 +208,18 @@ export class Web3Service implements OnInit {
 
   // Events
 
+  getPropertyRegistrationEvent(filters, options): any {
+    return this.landRegistry.PropertyRegistration(filters, options);
+  }
+
+  getDiaryBookEvent(filters, options): any {
+    return this.landRegistry.DiaryBook(filters, options);
+  }
+
+  getInscriptionBookEvent(filters, options): any {
+    return this.landRegistry.InscriptionBook(filters, options);
+  }
+
   async listenPropertyRegistrations() {
     let event = this.landRegistry.PropertyRegistration({}, {fromBlock: 0});
     event.watch(async (err, res) => {
@@ -207,6 +229,58 @@ export class Web3Service implements OnInit {
       } 
       this.properties.push(await this.getProperty(res.args.property));
     })
+  }
+
+  //Banking
+  async getEuroTokenBalance(address = this.selectedUserSource.value.address, caller = this.selectedUserSource.value.address):Promise<number> {
+    try {
+      let number = await this.euroToken.balanceOf(address, {from: caller});
+      return number;
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  async cashIn(address = this.selectedUserSource.value.address, quantity): Promise<boolean> {
+    try {
+      console.log('Cashing in: ', quantity);
+      await this.euroTokenBanking.cashIn(address, quantity, {from: this.manager.address});
+      return true;
+    } catch (err) {
+      return false;
+    }
+    
+  }
+
+  async newDocument(ipfsHash, documentHash, caller = this.selectedUserSource.value.address): Promise<IPFSDocument> {
+    let document = await this.DocumentContract.new(ipfsHash, documentHash, {from: caller});
+    let ipfsDocument = new IPFSDocument(
+      document.address,
+      await document.ipfsHash.call({from: caller}),
+      await document.documentHash.call({form: caller}),
+      await document.creator.call({from: caller})
+    );
+    return ipfsDocument;
+  }
+
+  async getIPFSDocument(address, caller = this.selectedUserSource.value.address): Promise<IPFSDocument> {
+    let document = await this.DocumentContract.at(address, {from: caller});
+    let ipfsDocument = new IPFSDocument(
+      document.address,
+      await document.ipfsHash.call({from: caller}),
+      await document.documentHash.call({form: caller}),
+      await document.creator.call({from: caller})
+    );
+    return ipfsDocument;
+  }
+
+  async registerPresentationEntry(id, document, caller = this.selectedUserSource.value.address) {
+    console.log('Registrando asiento presentación');
+    await this.landRegistry.addPresentationEntry(id, document, {from:caller});
+  }
+
+  async registerInscriptionEntry(id, type, property, document, caller = this.selectedUserSource.value.address) {
+    await this.landRegistry.addInscriptionEntry(id, type, property, document, {from:caller});
   }
 
   async getProperty(address, caller = this.selectedUserSource.value.address): Promise<Property> {

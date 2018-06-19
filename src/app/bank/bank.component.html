@@ -1,0 +1,13 @@
+<div class="jumbotron" style="background: rgba(255, 255, 255, 0.90); height: 90vh;">
+  <h1>Banco Euro Token</h1>
+  <p class="card-text"><span class="badge badge-dark">Usuario:</span> {{user?.address}}</p>
+  <hr>
+  <p class="card-text"><span class="badge badge-dark">Euro Tokens:</span> {{euroTokens / 10000}} €</p>
+  <h3>Ingresar dinero</h3>
+  <form #f="ngForm" (ngSubmit)="cashIn(cash.value); f.resetForm()" novalidate>
+    <div class="form-group">
+        <input class="form-control" name="cash-in" ngModel required #cash="ngModel"> 
+    </div>
+    <button class="btn btn-dark">Ingresar</button>
+  </form>
+</div>

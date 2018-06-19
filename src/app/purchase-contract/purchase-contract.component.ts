@@ -165,6 +165,7 @@ export class PurchaseContractComponent implements OnInit {
     console.log('Canceling...');
     await this.web3Service.cancel(this.address);
     this.updatePurchaseContract();
+    this.nav = 0;
   }
 
   async qualify(qualification) {
