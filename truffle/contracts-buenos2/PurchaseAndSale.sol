@@ -4,6 +4,11 @@ import "./Property.sol";
 import "./EuroToken.sol";
 import "./PublicFinance.sol";
 
+/// @title Purchase And Sale
+/// @author Elias Torvisco
+/// @notice Purchase and sale contract that will allow a property owner to transfer their property to a buyer
+/// and register the property into the Land Registry with the new owner.
+/// @dev All function calls are currently implement without side effects
 contract PurchaseAndSale {
 
     enum State { Joining, EarnestMoneyPayment, PurchaseAndSaleContractWritting, PurchaseAndSaleContractValidation, OutstandingPaymentsPayment, SignatureTime, QualififyingTime, Closed, Canceled }
@@ -54,17 +59,26 @@ contract PurchaseAndSale {
 
     }
     
-    // State Functions
 
-    // -- Joining
+    /// @dev Joining state function.
+    /// @notice Adds a notary to the purchase and sale contract. 
+    /// When done, the state of the contract will change.
+    /// @param _notary The address of the notary that will guide the negotiation.
+    /// @dev Only the buyer can add a notary.
     function addNotary(address _notary) public onlyBuyer onlyWhen(State.Joining) {
         notary = _notary;
         changeState(State.EarnestMoneyPayment);
     }
 
-    // -- EarnestMoneyPayment
+    /// @dev EarnestMoneyPayment state funciton.
+    /// @notice Function used to pay the earnest money.
+    /// When both buyer and seller have paid the state of the contract will change.
+    /// @dev The payment must be done earlier to this contract address through
+    /// the Euro Token specified in the Public Finance contract. 
+    /// @dev The function is restricted to the signers. No one else should pay the earnest signal.
+    /// @dev It will revert if the caller has already paid.
     function payEarnestMoney() public onlySigners onlyWhen(State.EarnestMoneyPayment) {
-        if (signer[msg.sender].earnestMoneyPaid == earnestMoney) revert(); //Already Paid
+        if (signer[msg.sender].earnestMoneyPaid == earnestMoney) revert(); 
         uint allowed = euroToken.allowance(msg.sender, this);
         uint pending = earnestMoney - signer[msg.sender].earnestMoneyPaid;
         if (allowed >= pending) {
@@ -80,16 +94,19 @@ contract PurchaseAndSale {
         }
     }
 
-    // -- PurchaseAndSaleContractWritting
-
+    /// @dev PurchaseAndSaleContractWritting state function
+    /// @notice Links the real purchase and sale contract to this smart contract 
+    /// through the hash of the physical document.
+    /// @param _purchaseAndSaleContract The hash of the physical purchase contract
     function setPurchaseAndSaleContractHash(string _purchaseAndSaleContractHash) public onlyNotary onlyWhen(State.PurchaseAndSaleContractWritting) {
         require(bytes(_purchaseAndSaleContractHash).length > 0);
         purchaseAndSaleContractHash = _purchaseAndSaleContractHash;
         changeState(State.PurchaseAndSaleContractValidation);
     }
 
-    // -- purchaseAndSaleContractValidation
-
+    /// @dev PurchaseAndSaleContractValidation state function
+    /// @notice Signers should validate the contract hash specified by the notary. 
+    /// @param _purchaseAndSaleContractHash The hash of the physical purchase contract
     function validatePurchaseAndSaleContractHash(string _purchaseAndSaleContractHash) public onlySigners onlyWhen(State.PurchaseAndSaleContractValidation) {
         if (keccak256(bytes(purchaseAndSaleContractHash)) == keccak256(bytes(_purchaseAndSaleContractHash))) {
             signer[msg.sender].validated = true;
@@ -100,8 +117,11 @@ contract PurchaseAndSale {
         }
     }
 
-    // -- OutstandingPaymentsPayment
-
+    /// @dev OutstandingPaymentsPayment state function
+    /// @notice Used to pay both seller or buyers debts.
+    /// As soon as all payments have been made, the state 
+    /// of the contract will change.
+    /// @dev The function is restricted to the signers.
     function payOutstandingPayments() public onlySigners onlyWhen(State.OutstandingPaymentsPayment) {
         if (signer[msg.sender].totalPaid == signer[msg.sender].totalDue) revert(); //Already Paid
         uint allowed = euroToken.allowance(msg.sender, this);
@@ -119,6 +139,11 @@ contract PurchaseAndSale {
         }
     }
 
+    /// @dev SignatureTime state function
+    /// @notice Used to pay both seller or buyers debts.
+    /// As soon as all payments have been made, the state 
+    /// of the contract will change.
+    /// @dev The function is restricted to the signers.
     function sign() public onlySigners onlyWhen(State.SignatureTime) {
         if (signer[msg.sender].signed) revert(); // Already signed
         signer[msg.sender].signed = true;
