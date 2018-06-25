@@ -4,6 +4,11 @@ import "./Property.sol";
 import "./EuroToken.sol";
 import "./PublicFinance.sol";
 
+/// @title Purchase And Sale
+/// @author Elias Torvisco
+/// @notice Purchase and sale contract that will allow a property owner to transfer their property to a buyer
+/// and register the property into the Land Registry with the new owner.
+/// @dev All function calls are currently implement without side effects
 contract PurchaseAndSale {
 
     enum State { Joining, EarnestMoneyPayment, PurchaseAndSaleContractWritting, PurchaseAndSaleContractValidation, OutstandingPaymentsPayment, SignatureTime, QualififyingTime, Closed, Canceled }
@@ -55,14 +60,13 @@ contract PurchaseAndSale {
 
     }
     
-    // State Functions
-
-    //Always
-
+    /// @dev Cancelation function
+    /// @notice Used to cancel the purchase and sale. Its behaviour will be 
+    /// different depending on the state of the contract.
     function cancel() public onlySignerOrNotary onlyBefore(State.QualififyingTime) {
 
         if (state == State.EarnestMoneyPayment) {
-            // Devolver lo pagado
+            // Refund earnest money paid
             if (signer[buyer].earnestMoneyPaid > 0)
                 euroToken.transfer(buyer, signer[buyer].earnestMoneyPaid);
 
@@ -70,15 +74,18 @@ contract PurchaseAndSale {
                 euroToken.transfer(seller, signer[seller].earnestMoneyPaid);
 
         } else {
-            // Ya se ha pagado la paga y señal, la cancelación implica la perdida de este dinero
             if (isSeller(msg.sender))
                 euroToken.transfer(buyer, 2 * earnestMoney);
 
             if (isBuyer(msg.sender))
                 euroToken.transfer(seller, 2 * earnestMoney);
 
+            if (isNotary(msg.sender)) {
+                euroToken.transfer(buyer, earnestMoney);
+                euroToken.transfer(seller, earnestMoney);
+            }
+                
             if (state >= State.OutstandingPaymentsPayment) {
-                // Puede que todavia no hayan pagado todo
                 euroToken.transfer(buyer, signer[buyer].totalPaid);
                 euroToken.transfer(seller, signer[seller].totalPaid);
             }
@@ -89,13 +96,25 @@ contract PurchaseAndSale {
         property.resolvePurchase();
     }
 
-    // -- Joining
+    /// @dev Joining state function.
+
+    /// @notice Adds a notary to the purchase and sale contract. 
+    /// When done, the state of the contract will change.
+    /// @param _notary The address of the notary that will guide the negotiation.
+    /// @dev Only the buyer can add a notary.
     function addNotary(address _notary) public onlyBuyer onlyWhen(State.Joining) {
         notary = _notary;
         changeState(State.EarnestMoneyPayment);
     }
 
-    // -- EarnestMoneyPayment
+    /// @dev EarnestMoneyPayment state funciton.
+
+    /// @notice Function used to pay the earnest money.
+    /// When both buyer and seller have paid the state of the contract will change.
+    /// @dev The payment must be done earlier to this contract address through
+    /// the Euro Token specified in the Public Finance contract. 
+    /// @dev The function is restricted to the signers. No one else should pay the earnest signal.
+    /// @dev It will revert if the caller has already paid.
     function payEarnestMoney() public onlySigners onlyWhen(State.EarnestMoneyPayment) {
         if (signer[msg.sender].earnestMoneyPaid == earnestMoney) revert(); //Already Paid
         uint allowed = euroToken.allowance(msg.sender, this);
@@ -113,16 +132,21 @@ contract PurchaseAndSale {
         }
     }
 
-    // -- PurchaseAndSaleContractWritting
+    /// @dev PurchaseAndSaleContractWritting state function
 
+    /// @notice Links the real purchase and sale contract to this smart contract 
+    /// through the hash of the physical document.
+    /// @param _purchaseAndSaleContract The hash of the physical purchase contract
     function setPurchaseAndSaleContractHash(string _purchaseAndSaleContractHash) public onlyNotary onlyWhen(State.PurchaseAndSaleContractWritting) {
         require(bytes(_purchaseAndSaleContractHash).length > 0);
         purchaseAndSaleContractHash = _purchaseAndSaleContractHash;
         changeState(State.PurchaseAndSaleContractValidation);
     }
 
-    // -- purchaseAndSaleContractValidation
+    /// @dev PurchaseAndSaleContractValidation state function
 
+    /// @notice Signers should validate the contract hash specified by the notary. 
+    /// @param _purchaseAndSaleContractHash The hash of the physical purchase contract
     function validatePurchaseAndSaleContractHash(string _purchaseAndSaleContractHash) public onlySigners onlyWhen(State.PurchaseAndSaleContractValidation) {
         if (keccak256(bytes(purchaseAndSaleContractHash)) == keccak256(bytes(_purchaseAndSaleContractHash))) {
             signer[msg.sender].validated = true;
@@ -133,8 +157,12 @@ contract PurchaseAndSale {
         }
     }
 
-    // -- OutstandingPaymentsPayment
+    /// @dev OutstandingPaymentsPayment state function
 
+    /// @notice Used to pay both seller or buyers debts.
+    /// As soon as all payments have been made, the state 
+    /// of the contract will change.
+    /// @dev The function is restricted to the signers.
     function payOutstandingPayments() public onlySigners onlyWhen(State.OutstandingPaymentsPayment) {
         if (signer[msg.sender].totalPaid == signer[msg.sender].totalDue) revert(); //Already Paid
         uint allowed = euroToken.allowance(msg.sender, this);
@@ -152,6 +180,12 @@ contract PurchaseAndSale {
         }
     }
 
+    /// @dev SignatureTime state function
+
+    /// @notice Used to pay both seller or buyers debts.
+    /// As soon as all payments have been made, the state 
+    /// of the contract will change.
+    /// @dev The function is restricted to the signers.
     function sign() public onlySigners onlyWhen(State.SignatureTime) {
         if (signer[msg.sender].signed) revert(); // Already signed
         signer[msg.sender].signed = true;
@@ -161,8 +195,10 @@ contract PurchaseAndSale {
         }
     }
 
-    // -- QualififyingTime
+    /// @dev QualificationTime state function
 
+    /// @notice Allows the registrar to qualify the sale.
+    /// @dev The function is restricted to the registrar
     function qualify(bool _qualification) public onlyRegistrar onlyWhen(State.QualififyingTime) {
         qualification = _qualification;
         if (qualification) pay();
@@ -172,6 +208,8 @@ contract PurchaseAndSale {
         property.resolvePurchase();
     }
 
+    /// @dev Internal funtion
+    /// @notice Used in case the registrar's qualification is positive.
     function pay() internal {
         address recipient;
 
@@ -188,6 +226,8 @@ contract PurchaseAndSale {
         euroToken.transfer(seller, 2 * earnestMoney);
     }
 
+    /// @dev Internal funtion
+    /// @notice Used in case the registrar's qualification is negative.
     function refund() internal {
         euroToken.transfer(seller, signer[seller].totalPaid);
         euroToken.transfer(buyer, signer[buyer].totalPaid);
@@ -195,8 +235,7 @@ contract PurchaseAndSale {
         euroToken.transfer(buyer, earnestMoney);
     }
 
-    // Logics
-
+    /// @notice Adds an outstanding payment to a debtor
     function addOutstandingPayment(address debtor, address paymentRecipient, uint outstandingPayment) internal {
         require(isSeller(debtor) || isBuyer(debtor)); 
         if (signer[debtor].dueWith[paymentRecipient] == 0) signer[debtor].paymentRecipients.push(paymentRecipient);
@@ -204,12 +243,13 @@ contract PurchaseAndSale {
         signer[debtor].totalDue = signer[debtor].totalDue + outstandingPayment;
     }
 
+    /// @notice Changes the contract state
+    /// @dev Can't be called from outside the contract
     function changeState(State newState) internal {
         state = newState;
     }
 
-    // Getters
-
+    /// @notice Returns basic contract information
     function getPurchaseAndSaleInfo() public view returns (
         address _property,
         address _publicFinance,
@@ -238,6 +278,7 @@ contract PurchaseAndSale {
         );
     }
 
+    /// @notice Returns basic signer information
     function getSignerInfo(address _signer) public view returns (
         bool _validated,
         bool _signed,
@@ -256,17 +297,20 @@ contract PurchaseAndSale {
         );
     }
 
+    /// @notice Returns a list of the beneficiaries of the outstanding payments from the signer indicated.
     function getSignerPaymentRecipients(address _signer) public view returns (address[] _recipients) {
         return signer[_signer].paymentRecipients;
     }
 
+    /// @notice Returns the signer's debt to the specified recipient.
     function getSignerDueWith(address _signer, address _recipient) public view returns (uint _due) {
         return signer[_signer].dueWith[_recipient];
     }
 
    
-
-    // Auxiliar Functions
+    /**
+     *  Auxiliar Functions
+     */
 
     function isSeller(address unknown) public view returns (bool) {return (unknown == seller);}
     function isBuyer(address unknown) public view returns (bool) {return (unknown == buyer);}
@@ -278,7 +322,10 @@ contract PurchaseAndSale {
     function hasBeenQualified() public view returns (bool) {return (state == State.Closed);}
 
 
-    // Modifiers
+    /**
+     *  Permission Modifiers
+     */
+
     modifier onlyPropertyOwner(address _property) {
         require(msg.sender == Property(_property).owner());
         _;
